@@ -25,6 +25,7 @@ const navigation = [
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
+  // console.log('Authenticated user:', user);
 
   const filteredNavigation = navigation.filter(item => 
     user && item.roles.includes(user.role)

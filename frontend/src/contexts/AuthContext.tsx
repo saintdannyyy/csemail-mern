@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoading(true);
       const response = await apiClient.login(email, password);
+      console.log('Login response:', response);
       setUser(response.user);
       localStorage.setItem("csemail-user", JSON.stringify(response.user));
     } catch (error) {

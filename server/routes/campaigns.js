@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+// const { v4: uuidv4 } = require('uuid');
 const supabase = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
