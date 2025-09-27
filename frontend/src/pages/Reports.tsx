@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Download, 
-  Calendar, 
-  Mail, 
-  Eye, 
-  MousePointer, 
+import React, { useState, useEffect } from "react";
+import {
+  BarChart3,
+  TrendingUp,
+  Download,
+  Calendar,
+  Mail,
+  Eye,
+  MousePointer,
   AlertTriangle,
   Users,
-  Send
-} from 'lucide-react';
+  Send,
+} from "lucide-react";
 
 interface DashboardStats {
   totalCampaigns: number;
@@ -48,87 +48,49 @@ interface CampaignReport {
 
 export const Reports: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [dailyPerformance, setDailyPerformance] = useState<DailyPerformance[]>([]);
+  const [dailyPerformance, setDailyPerformance] = useState<DailyPerformance[]>(
+    []
+  );
   const [campaigns, setCampaigns] = useState<CampaignReport[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState('30');
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchReportsData = async () => {
+      setLoading(true);
+      try {
+        const apiClient = (await import("../utils/apiClient")).apiClient;
+        // Fetch dashboard stats
+        const statsResponse = await apiClient.getReports();
+        setStats(statsResponse.stats || statsResponse || null);
+
+        // Fetch daily performance (if separate endpoint, adjust accordingly)
+        setDailyPerformance(statsResponse.dailyPerformance || []);
+
+        // Fetch campaign performance
+        const campaignsResponse = await apiClient.getCampaignStats();
+        setCampaigns(campaignsResponse.campaigns || campaignsResponse || []);
+      } catch (error) {
+        console.error("Failed to fetch reports data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchReportsData();
   }, [selectedPeriod]);
 
-  const fetchReportsData = async () => {
-    setLoading(true);
-    try {
-      // Simulate API calls - replace with actual API calls
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data
-      setStats({
-        totalCampaigns: 127,
-        emailsSent: 2543892,
-        emailsDelivered: 2521045,
-        emailsOpened: 630261,
-        emailsClicked: 126052,
-        emailsBounced: 22847,
-        totalContacts: 98453,
-        suppressedContacts: 892,
-        openRate: '25.0',
-        clickRate: '5.0',
-        bounceRate: '0.9'
-      });
-
-      setDailyPerformance([
-        { date: '2024-01-01', sent: 15000, opened: 3750, clicked: 562 },
-        { date: '2024-01-02', sent: 18000, opened: 4680, clicked: 702 },
-        { date: '2024-01-03', sent: 12000, opened: 3000, clicked: 450 },
-        { date: '2024-01-04', sent: 22000, opened: 5940, clicked: 891 },
-        { date: '2024-01-05', sent: 16000, opened: 4000, clicked: 640 },
-        { date: '2024-01-06', sent: 20000, opened: 5400, clicked: 810 },
-        { date: '2024-01-07', sent: 14000, opened: 3640, clicked: 546 }
-      ]);
-
-      setCampaigns([
-        {
-          id: '1',
-          name: 'Q4 Product Updates',
-          subject: 'Exciting New Features Coming Your Way!',
-          status: 'sent',
-          sentAt: '2024-01-20T09:00:00Z',
-          totalRecipients: 15247,
-          deliveryRate: '99.0',
-          openRate: '25.2',
-          clickRate: '3.8',
-          bounceRate: '1.0'
-        },
-        {
-          id: '2',
-          name: 'Weekly Newsletter #42',
-          subject: 'This Week in Software Engineering',
-          status: 'sent',
-          sentAt: '2024-01-19T10:00:00Z',
-          totalRecipients: 8932,
-          deliveryRate: '98.5',
-          openRate: '28.1',
-          clickRate: '4.2',
-          bounceRate: '1.5'
-        }
-      ]);
-    } catch (error) {
-      console.error('Failed to fetch reports data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const exportReport = (type: 'dashboard' | 'campaigns') => {
+  const exportReport = (type: "dashboard" | "campaigns") => {
     // Simulate export functionality
-    const data = type === 'dashboard' ? { stats, dailyPerformance } : campaigns;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const data = type === "dashboard" ? { stats, dailyPerformance } : campaigns;
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${type}-report-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `${type}-report-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -156,7 +118,9 @@ export const Reports: React.FC = () => {
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Reports & Analytics
+            </h1>
             <p className="mt-1 text-sm text-gray-600">
               Comprehensive email campaign performance and system analytics
             </p>
@@ -173,7 +137,7 @@ export const Reports: React.FC = () => {
               <option value="365">Last year</option>
             </select>
             <button
-              onClick={() => exportReport('dashboard')}
+              onClick={() => exportReport("dashboard")}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -192,8 +156,16 @@ export const Reports: React.FC = () => {
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Total Campaigns</dt>
-                <dd className="text-2xl font-semibold text-gray-900">{stats?.totalCampaigns.toLocaleString()}</dd>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Total Campaigns
+                </dt>
+                <dd className="text-2xl font-semibold text-gray-900">
+                  {stats?.totalCampaigns ? (
+                    stats.totalCampaigns.toLocaleString()
+                  ) : (
+                    <span className="text-gray-400">No data</span>
+                  )}
+                </dd>
               </dl>
             </div>
           </div>
@@ -206,8 +178,16 @@ export const Reports: React.FC = () => {
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Emails Sent</dt>
-                <dd className="text-2xl font-semibold text-gray-900">{stats?.emailsSent.toLocaleString()}</dd>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Emails Sent
+                </dt>
+                <dd className="text-2xl font-semibold text-gray-900">
+                  {stats?.emailsSent ? (
+                    stats.emailsSent.toLocaleString()
+                  ) : (
+                    <span className="text-gray-400">No data</span>
+                  )}
+                </dd>
               </dl>
             </div>
           </div>
@@ -220,8 +200,16 @@ export const Reports: React.FC = () => {
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Open Rate</dt>
-                <dd className="text-2xl font-semibold text-gray-900">{stats?.openRate}%</dd>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Open Rate
+                </dt>
+                <dd className="text-2xl font-semibold text-gray-900">
+                  {stats?.openRate ? (
+                    `${stats.openRate}%`
+                  ) : (
+                    <span className="text-gray-400">No data</span>
+                  )}
+                </dd>
               </dl>
             </div>
           </div>
@@ -234,8 +222,16 @@ export const Reports: React.FC = () => {
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Click Rate</dt>
-                <dd className="text-2xl font-semibold text-gray-900">{stats?.clickRate}%</dd>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Click Rate
+                </dt>
+                <dd className="text-2xl font-semibold text-gray-900">
+                  {stats?.clickRate ? (
+                    `${stats.clickRate}%`
+                  ) : (
+                    <span className="text-gray-400">No data</span>
+                  )}
+                </dd>
               </dl>
             </div>
           </div>
@@ -246,7 +242,9 @@ export const Reports: React.FC = () => {
       <div className="bg-white shadow-sm rounded-lg border border-gray-200 mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Performance Trends</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              Performance Trends
+            </h3>
             <div className="flex items-center space-x-4 text-xs">
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
@@ -263,44 +261,54 @@ export const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="p-6">
           <div className="relative">
-            <div className="flex items-end justify-between h-64 space-x-2">
-              {dailyPerformance.map((data, index) => {
-                const maxValue = Math.max(...dailyPerformance.map(d => d.sent));
-                const sentHeight = (data.sent / maxValue) * 240;
-                const openedHeight = (data.opened / maxValue) * 240;
-                const clickedHeight = (data.clicked / maxValue) * 240;
-                
-                return (
-                  <div key={index} className="flex-1 flex items-end space-x-1">
-                    <div className="flex-1 flex flex-col items-center">
-                      <div className="w-full flex justify-center space-x-1">
-                        <div 
-                          className="w-3 bg-blue-500 rounded-t"
-                          style={{ height: `${sentHeight}px` }}
-                        ></div>
-                        <div 
-                          className="w-3 bg-green-500 rounded-t"
-                          style={{ height: `${openedHeight}px` }}
-                        ></div>
-                        <div 
-                          className="w-3 bg-purple-500 rounded-t"
-                          style={{ height: `${clickedHeight}px` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-2">
-                        {new Date(data.date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+            {dailyPerformance.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-gray-400">
+                No performance data available.
+              </div>
+            ) : (
+              <div className="flex items-end justify-between h-64 space-x-2">
+                {dailyPerformance.map((data, index) => {
+                  const maxValue = Math.max(
+                    ...dailyPerformance.map((d) => d.sent)
+                  );
+                  const sentHeight = (data.sent / maxValue) * 240;
+                  const openedHeight = (data.opened / maxValue) * 240;
+                  const clickedHeight = (data.clicked / maxValue) * 240;
+                  return (
+                    <div
+                      key={index}
+                      className="flex-1 flex items-end space-x-1"
+                    >
+                      <div className="flex-1 flex flex-col items-center">
+                        <div className="w-full flex justify-center space-x-1">
+                          <div
+                            className="w-3 bg-blue-500 rounded-t"
+                            style={{ height: `${sentHeight}px` }}
+                          ></div>
+                          <div
+                            className="w-3 bg-green-500 rounded-t"
+                            style={{ height: `${openedHeight}px` }}
+                          ></div>
+                          <div
+                            className="w-3 bg-purple-500 rounded-t"
+                            style={{ height: `${clickedHeight}px` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-2">
+                          {new Date(data.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -309,9 +317,11 @@ export const Reports: React.FC = () => {
       <div className="bg-white shadow-sm rounded-lg border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Campaign Performance</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              Campaign Performance
+            </h3>
             <button
-              onClick={() => exportReport('campaigns')}
+              onClick={() => exportReport("campaigns")}
               className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -348,68 +358,116 @@ export const Reports: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {campaigns.map((campaign) => (
-                <tr key={campaign.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {campaign.name}
-                      </div>
-                      <div className="text-sm text-gray-500">{campaign.subject}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {campaign.totalRecipients.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="text-sm font-medium text-gray-900">{campaign.deliveryRate}%</div>
-                      <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full" 
-                          style={{ width: `${campaign.deliveryRate}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="text-sm font-medium text-gray-900">{campaign.openRate}%</div>
-                      <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-500 h-2 rounded-full" 
-                          style={{ width: `${campaign.openRate}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="text-sm font-medium text-gray-900">{campaign.clickRate}%</div>
-                      <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-purple-500 h-2 rounded-full" 
-                          style={{ width: `${parseFloat(campaign.clickRate) * 5}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="text-sm font-medium text-gray-900">{campaign.bounceRate}%</div>
-                      <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-red-500 h-2 rounded-full" 
-                          style={{ width: `${parseFloat(campaign.bounceRate) * 10}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(campaign.sentAt).toLocaleDateString()}
+              {campaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-400">
+                    No campaign performance data available.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                campaigns.map((campaign) => (
+                  <tr key={campaign.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {campaign.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {campaign.subject}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {campaign.totalRecipients?.toLocaleString?.() ?? (
+                        <span className="text-gray-400">No data</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {campaign.deliveryRate ? (
+                            `${campaign.deliveryRate}%`
+                          ) : (
+                            <span className="text-gray-400">No data</span>
+                          )}
+                        </div>
+                        <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full"
+                            style={{ width: `${campaign.deliveryRate || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {campaign.openRate ? (
+                            `${campaign.openRate}%`
+                          ) : (
+                            <span className="text-gray-400">No data</span>
+                          )}
+                        </div>
+                        <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{ width: `${campaign.openRate || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {campaign.clickRate ? (
+                            `${campaign.clickRate}%`
+                          ) : (
+                            <span className="text-gray-400">No data</span>
+                          )}
+                        </div>
+                        <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-purple-500 h-2 rounded-full"
+                            style={{
+                              width: `${
+                                parseFloat(campaign.clickRate || "0") * 5
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {campaign.bounceRate ? (
+                            `${campaign.bounceRate}%`
+                          ) : (
+                            <span className="text-gray-400">No data</span>
+                          )}
+                        </div>
+                        <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-red-500 h-2 rounded-full"
+                            style={{
+                              width: `${
+                                parseFloat(campaign.bounceRate || "0") * 10
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {campaign.sentAt ? (
+                        new Date(campaign.sentAt).toLocaleDateString()
+                      ) : (
+                        <span className="text-gray-400">No date</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
