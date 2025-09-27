@@ -25,9 +25,10 @@ export const Campaigns: React.FC = () => {
     const fetchCampaigns = async () => {
       setLoading(true);
       try {
-        const { apiClient } = await import("../utils/apiClient");
-        const response = await apiClient.getCampaigns(1, 100);
-        setCampaigns(response.campaigns || []);
+        const response = await (
+          await import("../utils/apiClient")
+        ).apiClient.getCampaigns(1, 100);
+        setCampaigns(response.campaigns || response || []);
       } catch (error) {
         console.error("Failed to fetch campaigns:", error);
       } finally {
