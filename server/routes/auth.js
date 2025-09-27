@@ -30,12 +30,12 @@ router.post("/login", async (req, res) => {
         user: {
           id: user._id,
           email: user.email,
-          // firstName: user.first_name,
-          // lastName: user.last_name,
+          firstName: user.firstName,
+          lastName: user.lastName,
           role: user.role,
-          // status: user.status,
-          // createdAt: user.createdAt,
-          // lastLoginAt: new Date().toISOString(),
+          status: user.status,
+          createdAt: user.createdAt,
+          lastLoginAt: user.lastLoginAt || null,
         },
       });
     }
@@ -87,12 +87,12 @@ router.get("/me", authenticateToken, (req, res) => {
     user: {
       id: req.user._id,
       email: req.user.email,
-      // firstName: req.user.first_name,
-      // lastName: req.user.last_name,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
       role: req.user.role,
-      // status: req.user.status,
+      status: req.user.status,
       createdAt: req.user.createdAt,
-      // lastLoginAt: req.user.last_login_at,
+      lastLoginAt: req.user.lastLoginAt || null,
     },
   });
 });

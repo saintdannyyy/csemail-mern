@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           apiClient.setToken(storedToken);
           const userData = await apiClient.getCurrentUser();
-          setUser(userData);
+          setUser(userData.user); // <-- instead of setUser(userData)
         } catch (error) {
           console.error("Failed to validate stored token:", error);
           // Clear invalid token
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoading(true);
       const response = await apiClient.login(email, password);
-      console.log('Login response:', response);
+      console.log("Login response:", response);
       setUser(response.user);
       localStorage.setItem("csemail-user", JSON.stringify(response.user));
     } catch (error) {
