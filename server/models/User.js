@@ -1,4 +1,3 @@
-
 // mongoose = require("mongoose");
 
 // const UserSchema = new mongoose.Schema({
@@ -9,7 +8,7 @@
 //     type: Date,
 //     default: Date.now
 //   },
-//     updatedAt: {   
+//     updatedAt: {
 //     type: Date,
 //     default: Date.now
 //   }
@@ -17,13 +16,23 @@
 
 // module.exports = mongoose.model("User", UserSchema);
 
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
-  email: { type: String, required: true },
-  password: { type: String, required: true },
-  role: { type: String, required: true },
-}, { timestamps: true });  // adds createdAt and updatedAt automatically
+const userSchema = new mongoose.Schema(
+  {
+    email: { type: String, required: true },
+    password: { type: String, required: true },
+    role: { type: String, required: true },
+    firstName: { type: String, default: "" },
+    lastName: { type: String, default: "" },
+    status: {
+      type: String,
+      enum: ["active", "inactive", "pending"],
+      default: "active",
+    },
+  },
+  { timestamps: true }
+); // adds createdAt and updatedAt automatically
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 module.exports = User;
