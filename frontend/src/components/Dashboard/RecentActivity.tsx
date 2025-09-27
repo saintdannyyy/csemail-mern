@@ -1,9 +1,13 @@
-import React from 'react';
-import { Clock, Mail, Users, TrendingUp } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { Clock, Mail, Users, TrendingUp } from "lucide-react";
 
 interface ActivityItem {
   id: string;
-  type: 'campaign_sent' | 'contact_imported' | 'template_created' | 'report_generated';
+  type:
+    | "campaign_sent"
+    | "contact_imported"
+    | "template_created"
+    | "report_generated";
   title: string;
   description: string;
   timestamp: string;
@@ -17,52 +21,86 @@ const ActivityIcon: React.FC<{ type: string }> = ({ type }) => {
     template_created: <TrendingUp className="h-5 w-5 text-purple-600" />,
     report_generated: <TrendingUp className="h-5 w-5 text-indigo-600" />,
   };
-  return icons[type as keyof typeof icons] || <Clock className="h-5 w-5 text-gray-400" />;
+  return (
+    icons[type as keyof typeof icons] || (
+      <Clock className="h-5 w-5 text-gray-400" />
+    )
+  );
 };
 
-export const RecentActivity: React.FC = () => {
-  const activities: ActivityItem[] = [
-    {
-      id: '1',
-      type: 'campaign_sent',
-      title: 'Campaign "Q4 Product Updates" sent',
-      description: 'Delivered to 15,247 recipients',
-      timestamp: '2 minutes ago',
-      user: 'Sarah Johnson',
-    },
-    {
-      id: '2',
-      type: 'contact_imported',
-      title: 'Contacts imported from CSV',
-      description: '2,451 new contacts added to "Enterprise Leads" list',
-      timestamp: '15 minutes ago',
-      user: 'Michael Chen',
-    },
-    {
-      id: '3',
-      type: 'template_created',
-      title: 'New template created',
-      description: '"Holiday Newsletter" template saved',
-      timestamp: '1 hour ago',
-      user: 'Sarah Johnson',
-    },
-    {
-      id: '4',
-      type: 'report_generated',
-      title: 'Monthly report generated',
-      description: 'October 2024 campaign performance report',
-      timestamp: '2 hours ago',
-      user: 'System',
-    },
-    {
-      id: '5',
-      type: 'campaign_sent',
-      title: 'Campaign "Weekly Newsletter #42" sent',
-      description: 'Delivered to 8,932 recipients',
-      timestamp: '4 hours ago',
-      user: 'Alex Rodriguez',
-    },
-  ];
+export const RecentActivity: React.FC<{ activity?: ActivityItem[] }> = ({
+  activity,
+}) => {
+  const [activities, setActivities] = useState<ActivityItem[]>(activity || []);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchActivity = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Replace with your actual backend endpoint for recent activity
+        const response = await (
+          await import("../../utils/apiClient")
+        ).apiClient.get<any>("/api/activity/recent");
+        setActivities(response.activities || []);
+      } catch (err: any) {
+        setError(err?.message || "Failed to load activity");
+        setActivities([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActivity();
+  }, [activity]);
+
+  if (loading) {
+    return (
+      <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+        </div>
+        <div className="p-6 text-center text-gray-400">Loading activity...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+        </div>
+        <div className="p-6 text-center text-red-600">{error}</div>
+        <div className="px-6 py-3 text-center">
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              window.location.reload();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!activities || activities.length === 0) {
+    return (
+      <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+        </div>
+        <div className="p-6 text-center text-yellow-700">
+          No recent activity found.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white shadow-sm rounded-lg border border-gray-200">
@@ -71,7 +109,10 @@ export const RecentActivity: React.FC = () => {
       </div>
       <div className="divide-y divide-gray-200">
         {activities.map((activity) => (
-          <div key={activity.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+          <div
+            key={activity.id}
+            className="px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <ActivityIcon type={activity.type} />
@@ -91,7 +132,10 @@ export const RecentActivity: React.FC = () => {
         ))}
       </div>
       <div className="px-6 py-3 bg-gray-50 text-center">
-        <a href="/activity" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+        <a
+          href="/activity"
+          className="text-sm font-medium text-blue-600 hover:text-blue-500"
+        >
           View all activity
         </a>
       </div>
