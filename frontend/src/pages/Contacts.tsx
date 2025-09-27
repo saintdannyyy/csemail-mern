@@ -1,70 +1,67 @@
-import React, { useState } from 'react';
-import { Plus, Upload, Download, Search, Filter, MoreHorizontal, Edit, Trash2, Tag } from 'lucide-react';
-import { Contact } from '../types';
+import React, { useState, useEffect } from "react";
+import {
+  Plus,
+  Upload,
+  Download,
+  Search,
+  Filter,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Tag,
+} from "lucide-react";
+import { Contact } from "../types";
 
 export const Contacts: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("all");
 
-  // Mock data
-  const contacts: Contact[] = [
-    {
-      id: '1',
-      email: 'john.doe@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-      tags: ['enterprise', 'vip'],
-      customFields: { company: 'Acme Corp', position: 'CEO' },
-      status: 'active',
-      listIds: ['1', '2'],
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z',
-    },
-    {
-      id: '2',
-      email: 'jane.smith@example.com',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      tags: ['lead'],
-      customFields: { company: 'Tech Solutions', position: 'CTO' },
-      status: 'active',
-      listIds: ['1'],
-      createdAt: '2024-01-16T11:00:00Z',
-      updatedAt: '2024-01-16T11:00:00Z',
-    },
-    {
-      id: '3',
-      email: 'mike.johnson@example.com',
-      firstName: 'Mike',
-      lastName: 'Johnson',
-      tags: ['newsletter'],
-      customFields: { company: 'StartupXYZ', position: 'Founder' },
-      status: 'unsubscribed',
-      listIds: ['2'],
-      createdAt: '2024-01-17T09:00:00Z',
-      updatedAt: '2024-01-17T09:00:00Z',
-    },
-  ];
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const filteredContacts = contacts.filter(contact => {
-    const matchesSearch = contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = selectedFilter === 'all' || contact.status === selectedFilter;
-    
+  useEffect(() => {
+    const fetchContacts = async () => {
+      setLoading(true);
+      try {
+        // You can add pagination params if needed
+        const response = await (
+          await import("../utils/apiClient")
+        ).apiClient.getContacts(1, 100);
+        setContacts(response.contacts || response || []);
+      } catch (error) {
+        console.error("Failed to fetch contacts:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch =
+      contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${contact.firstName} ${contact.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesFilter =
+      selectedFilter === "all" || contact.status === selectedFilter;
+
     return matchesSearch && matchesFilter;
   });
 
-  const getStatusBadge = (status: Contact['status']) => {
+  const getStatusBadge = (status: Contact["status"]) => {
     const colors = {
-      active: 'bg-green-100 text-green-800',
-      unsubscribed: 'bg-yellow-100 text-yellow-800',
-      bounced: 'bg-red-100 text-red-800',
-      complained: 'bg-red-100 text-red-800',
+      active: "bg-green-100 text-green-800",
+      unsubscribed: "bg-yellow-100 text-yellow-800",
+      bounced: "bg-red-100 text-red-800",
+      complained: "bg-red-100 text-red-800",
     };
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[status]}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[status]}`}
+      >
         {status}
       </span>
     );
@@ -126,7 +123,9 @@ export const Contacts: React.FC = () => {
               </select>
             </div>
             <div className="text-sm text-gray-500">
-              {filteredContacts.length} of {contacts.length} contacts
+              {loading
+                ? "Loading..."
+                : `${filteredContacts.length} of ${contacts.length} contacts`}
             </div>
           </div>
         </div>
@@ -156,53 +155,73 @@ export const Contacts: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredContacts.map((contact) => (
-                <tr key={contact.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {contact.firstName} {contact.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">{contact.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{contact.customFields.company || '-'}</div>
-                    <div className="text-sm text-gray-500">{contact.customFields.position || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-wrap gap-1">
-                      {contact.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(contact.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(contact.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                    </div>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">
+                    Loading contacts...
                   </td>
                 </tr>
-              ))}
+              ) : filteredContacts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">
+                    No contacts found.
+                  </td>
+                </tr>
+              ) : (
+                filteredContacts.map((contact) => (
+                  <tr key={contact.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {contact.firstName} {contact.lastName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {contact.email}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {contact.customFields.company || "-"}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {contact.customFields.position || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-wrap gap-1">
+                        {contact.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(contact.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(contact.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button className="text-red-600 hover:text-red-900">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        <button className="text-gray-400 hover:text-gray-600">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
