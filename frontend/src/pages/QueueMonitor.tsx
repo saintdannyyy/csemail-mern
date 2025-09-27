@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Clock, 
-  Play, 
-  Pause, 
-  RefreshCw, 
-  AlertTriangle, 
-  CheckCircle, 
+import React, { useState, useEffect } from "react";
+import {
+  Clock,
+  Play,
+  Pause,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle,
   XCircle,
   Settings,
   Activity,
-  Filter
-} from 'lucide-react';
+} from "lucide-react";
 
 interface QueueStats {
   queued: number;
@@ -24,7 +23,7 @@ interface QueueStats {
 interface QueueJob {
   id: string;
   email: string;
-  status: 'queued' | 'sending' | 'sent' | 'failed' | 'retrying';
+  status: "queued" | "sending" | "sent" | "failed" | "retrying";
   attemptCount: number;
   lastAttemptAt?: string;
   errorMessage?: string;
@@ -49,20 +48,65 @@ export const QueueMonitor: React.FC = () => {
     sent: 0,
     failed: 0,
     retrying: 0,
-    total: 0
+    total: 0,
   });
   const [jobs, setJobs] = useState<QueueJob[]>([]);
   const [config, setConfig] = useState<QueueConfig>({
     isPaused: false,
     rateLimitPerMinute: 100,
-    maxRetryAttempts: 3
+    maxRetryAttempts: 3,
   });
   const [processingRate, setProcessingRate] = useState(0);
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [loading, setLoading] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
 
   useEffect(() => {
+    const fetchQueueData = async () => {
+      setLoading(true);
+      try {
+        const apiClient = (await import("../utils/apiClient")).apiClient;
+        // Fetch queue stats
+        const statsResponse = (await apiClient.get("/api/queue/stats")) as {
+          stats?: QueueStats;
+          processingRate?: number;
+        };
+        setStats(
+          statsResponse.stats ?? {
+            queued: 0,
+            sending: 0,
+            sent: 0,
+            failed: 0,
+            retrying: 0,
+            total: 0,
+          }
+        );
+
+        // Fetch jobs
+        const jobsResponse = (await apiClient.get("/api/queue/jobs")) as {
+          jobs?: QueueJob[];
+        };
+        setJobs(jobsResponse.jobs ?? []);
+
+        // Fetch config
+        const configResponse = (await apiClient.get("/api/queue/config")) as {
+          config?: QueueConfig;
+        };
+        setConfig(
+          configResponse.config ?? {
+            isPaused: false,
+            rateLimitPerMinute: 100,
+            maxRetryAttempts: 3,
+          }
+        );
+
+        setProcessingRate(statsResponse.processingRate ?? 0);
+      } catch (error) {
+        console.error("Failed to fetch queue data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchQueueData();
     const interval = setInterval(fetchQueueData, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
@@ -71,8 +115,8 @@ export const QueueMonitor: React.FC = () => {
   const fetchQueueData = async () => {
     try {
       // Simulate API calls - replace with actual API calls
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Mock data
       setStats({
         queued: 1247,
@@ -80,56 +124,56 @@ export const QueueMonitor: React.FC = () => {
         sent: 45892,
         failed: 156,
         retrying: 8,
-        total: 47326
+        total: 47326,
       });
 
       setJobs([
         {
-          id: '1',
-          email: 'john.doe@example.com',
-          status: 'queued',
+          id: "1",
+          email: "john.doe@example.com",
+          status: "queued",
           attemptCount: 0,
-          createdAt: '2024-01-22T10:30:00Z',
+          createdAt: "2024-01-22T10:30:00Z",
           campaigns: {
-            name: 'Q4 Product Updates',
-            subject: 'Exciting New Features Coming Your Way!'
-          }
+            name: "Q4 Product Updates",
+            subject: "Exciting New Features Coming Your Way!",
+          },
         },
         {
-          id: '2',
-          email: 'jane.smith@example.com',
-          status: 'sending',
+          id: "2",
+          email: "jane.smith@example.com",
+          status: "sending",
           attemptCount: 1,
-          lastAttemptAt: '2024-01-22T10:35:00Z',
-          createdAt: '2024-01-22T10:30:00Z',
+          lastAttemptAt: "2024-01-22T10:35:00Z",
+          createdAt: "2024-01-22T10:30:00Z",
           campaigns: {
-            name: 'Weekly Newsletter #42',
-            subject: 'This Week in Software Engineering'
-          }
+            name: "Weekly Newsletter #42",
+            subject: "This Week in Software Engineering",
+          },
         },
         {
-          id: '3',
-          email: 'failed@example.com',
-          status: 'failed',
+          id: "3",
+          email: "failed@example.com",
+          status: "failed",
           attemptCount: 3,
-          lastAttemptAt: '2024-01-22T10:32:00Z',
-          errorMessage: 'SMTP connection timeout',
-          createdAt: '2024-01-22T10:30:00Z',
+          lastAttemptAt: "2024-01-22T10:32:00Z",
+          errorMessage: "SMTP connection timeout",
+          createdAt: "2024-01-22T10:30:00Z",
           campaigns: {
-            name: 'Holiday Greetings 2024',
-            subject: 'Season\'s Greetings from All of Us'
-          }
-        }
+            name: "Holiday Greetings 2024",
+            subject: "Season's Greetings from All of Us",
+          },
+        },
       ]);
 
       setProcessingRate(85);
       setConfig({
         isPaused: false,
         rateLimitPerMinute: 100,
-        maxRetryAttempts: 3
+        maxRetryAttempts: 3,
       });
     } catch (error) {
-      console.error('Failed to fetch queue data:', error);
+      console.error("Failed to fetch queue data:", error);
     } finally {
       setLoading(false);
     }
@@ -138,45 +182,45 @@ export const QueueMonitor: React.FC = () => {
   const toggleQueueProcessing = async () => {
     try {
       const newPausedState = !config.isPaused;
-      setConfig(prev => ({ ...prev, isPaused: newPausedState }));
+      setConfig((prev) => ({ ...prev, isPaused: newPausedState }));
       // Simulate API call
-      console.log(newPausedState ? 'Pausing queue...' : 'Resuming queue...');
+      console.log(newPausedState ? "Pausing queue..." : "Resuming queue...");
     } catch (error) {
-      console.error('Failed to toggle queue processing:', error);
+      console.error("Failed to toggle queue processing:", error);
     }
   };
 
   const retryFailedJobs = async () => {
     try {
       // Simulate API call
-      console.log('Retrying failed jobs...');
+      console.log("Retrying failed jobs...");
       await fetchQueueData();
     } catch (error) {
-      console.error('Failed to retry jobs:', error);
+      console.error("Failed to retry jobs:", error);
     }
   };
 
   const updateConfig = async (newConfig: Partial<QueueConfig>) => {
     try {
-      setConfig(prev => ({ ...prev, ...newConfig }));
+      setConfig((prev) => ({ ...prev, ...newConfig }));
       // Simulate API call
-      console.log('Updating queue configuration...', newConfig);
+      console.log("Updating queue configuration...", newConfig);
     } catch (error) {
-      console.error('Failed to update configuration:', error);
+      console.error("Failed to update configuration:", error);
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'queued':
+      case "queued":
         return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'sending':
+      case "sending":
         return <Activity className="h-4 w-4 text-yellow-500 animate-pulse" />;
-      case 'sent':
+      case "sent":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed':
+      case "failed":
         return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'retrying':
+      case "retrying":
         return <RefreshCw className="h-4 w-4 text-orange-500 animate-spin" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
@@ -185,15 +229,19 @@ export const QueueMonitor: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const colors = {
-      queued: 'bg-blue-100 text-blue-800',
-      sending: 'bg-yellow-100 text-yellow-800',
-      sent: 'bg-green-100 text-green-800',
-      failed: 'bg-red-100 text-red-800',
-      retrying: 'bg-orange-100 text-orange-800'
+      queued: "bg-blue-100 text-blue-800",
+      sending: "bg-yellow-100 text-yellow-800",
+      sent: "bg-green-100 text-green-800",
+      failed: "bg-red-100 text-red-800",
+      retrying: "bg-orange-100 text-orange-800",
     };
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[status as keyof typeof colors]}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          colors[status as keyof typeof colors]
+        }`}
+      >
         {getStatusIcon(status)}
         <span className="ml-1 capitalize">{status}</span>
       </span>
@@ -244,9 +292,9 @@ export const QueueMonitor: React.FC = () => {
             <button
               onClick={toggleQueueProcessing}
               className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                config.isPaused 
-                  ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' 
-                  : 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                config.isPaused
+                  ? "bg-green-600 hover:bg-green-700 focus:ring-green-500"
+                  : "bg-red-600 hover:bg-red-700 focus:ring-red-500"
               }`}
             >
               {config.isPaused ? (
@@ -272,7 +320,9 @@ export const QueueMonitor: React.FC = () => {
             <Clock className="h-8 w-8 text-blue-500" />
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">Queued</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.queued.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.queued.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
@@ -282,7 +332,9 @@ export const QueueMonitor: React.FC = () => {
             <Activity className="h-8 w-8 text-yellow-500" />
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">Sending</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.sending.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.sending.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
@@ -292,7 +344,9 @@ export const QueueMonitor: React.FC = () => {
             <CheckCircle className="h-8 w-8 text-green-500" />
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">Sent</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.sent.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.sent.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
@@ -302,7 +356,9 @@ export const QueueMonitor: React.FC = () => {
             <XCircle className="h-8 w-8 text-red-500" />
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">Failed</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.failed.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.failed.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
@@ -312,7 +368,9 @@ export const QueueMonitor: React.FC = () => {
             <RefreshCw className="h-8 w-8 text-orange-500" />
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">Retrying</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.retrying.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.retrying.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
@@ -322,7 +380,9 @@ export const QueueMonitor: React.FC = () => {
             <Activity className="h-8 w-8 text-purple-500" />
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">Rate/min</p>
-              <p className="text-2xl font-semibold text-gray-900">{processingRate}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {processingRate}
+              </p>
             </div>
           </div>
         </div>
@@ -332,7 +392,9 @@ export const QueueMonitor: React.FC = () => {
       {showConfig && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Queue Configuration</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              Queue Configuration
+            </h3>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -343,7 +405,11 @@ export const QueueMonitor: React.FC = () => {
                 <input
                   type="number"
                   value={config.rateLimitPerMinute}
-                  onChange={(e) => updateConfig({ rateLimitPerMinute: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    updateConfig({
+                      rateLimitPerMinute: parseInt(e.target.value),
+                    })
+                  }
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -354,7 +420,9 @@ export const QueueMonitor: React.FC = () => {
                 <input
                   type="number"
                   value={config.maxRetryAttempts}
-                  onChange={(e) => updateConfig({ maxRetryAttempts: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    updateConfig({ maxRetryAttempts: parseInt(e.target.value) })
+                  }
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -373,7 +441,10 @@ export const QueueMonitor: React.FC = () => {
                 Queue Processing Paused
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
-                <p>Email queue processing is currently paused. No emails will be sent until resumed.</p>
+                <p>
+                  Email queue processing is currently paused. No emails will be
+                  sent until resumed.
+                </p>
               </div>
             </div>
           </div>
@@ -427,37 +498,56 @@ export const QueueMonitor: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {jobs.map((job) => (
-                <tr key={job.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{job.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{job.campaigns.name}</div>
-                      <div className="text-sm text-gray-500">{job.campaigns.subject}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(job.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {job.attemptCount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {job.lastAttemptAt ? new Date(job.lastAttemptAt).toLocaleString() : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {job.errorMessage ? (
-                      <div className="text-sm text-red-600 max-w-xs truncate" title={job.errorMessage}>
-                        {job.errorMessage}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">-</span>
-                    )}
+              {jobs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">
+                    No queue jobs found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                jobs.map((job) => (
+                  <tr key={job.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {job.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {job.campaigns.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {job.campaigns.subject}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(job.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {job.attemptCount}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {job.lastAttemptAt
+                        ? new Date(job.lastAttemptAt).toLocaleString()
+                        : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {job.errorMessage ? (
+                        <div
+                          className="text-sm text-red-600 max-w-xs truncate"
+                          title={job.errorMessage}
+                        >
+                          {job.errorMessage}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
