@@ -40,6 +40,7 @@ export const UserManagement: React.FC = () => {
     lastName: "",
     role: "editor" as User["role"],
   });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -48,11 +49,14 @@ export const UserManagement: React.FC = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await apiClient.get<any>("/api/users");
       setUsers(response && response.users ? response.users : []);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
+    } catch (err: any) {
+      setError(err?.message || "Failed to fetch users");
+      setUsers([]);
+      console.error("Failed to fetch users:", err);
     } finally {
       setLoading(false);
     }
@@ -62,8 +66,10 @@ export const UserManagement: React.FC = () => {
     try {
       const response = await apiClient.get<any>("/api/users/stats");
       setStats(response && response.stats ? response.stats : null);
-    } catch (error) {
-      console.error("Failed to fetch user stats:", error);
+    } catch (err: any) {
+      setError(err?.message || "Failed to fetch user stats");
+      setStats(null);
+      console.error("Failed to fetch user stats:", err);
     }
   };
 
@@ -196,6 +202,24 @@ export const UserManagement: React.FC = () => {
           </div>
           <div className="h-96 bg-gray-200 rounded-lg"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>
+        <button
+          onClick={() => {
+            setError(null);
+            fetchUsers();
+            fetchUserStats();
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -372,71 +396,90 @@ export const UserManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
-                          <span className="text-white text-sm font-medium">
-                            {user.firstName[0]}
-                            {user.lastName[0]}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {user.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getRoleBadge(user.role)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(user.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.lastLoginAt
-                      ? new Date(user.lastLoginAt).toLocaleDateString()
-                      : "Never"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      {user.status === "pending" && (
-                        <button
-                          onClick={() => updateUserStatus(user.id, "active")}
-                          className="text-green-600 hover:text-green-900"
-                          title="Activate User"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => resetUserPassword(user.id)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Reset Password"
-                      >
-                        <Key className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteUser(user.id)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete User"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-500">
+                    No users found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
+                            <span className="text-white text-sm font-medium">
+                              {typeof user.firstName === "string" &&
+                              user.firstName.length > 0
+                                ? user.firstName[0]
+                                : ""}
+                              {typeof user.lastName === "string" &&
+                              user.lastName.length > 0
+                                ? user.lastName[0]
+                                : ""}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {typeof user.firstName === "string"
+                              ? user.firstName
+                              : ""}{" "}
+                            {typeof user.lastName === "string"
+                              ? user.lastName
+                              : ""}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getRoleBadge(user.role)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(user.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.lastLoginAt
+                        ? new Date(user.lastLoginAt).toLocaleDateString()
+                        : "Never"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        {user.status === "pending" && (
+                          <button
+                            onClick={() => updateUserStatus(user.id, "active")}
+                            className="text-green-600 hover:text-green-900"
+                            title="Activate User"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => resetUserPassword(user.id)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Reset Password"
+                        >
+                          <Key className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete User"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
