@@ -23,11 +23,11 @@ export const Contacts: React.FC = () => {
     const fetchContacts = async () => {
       setLoading(true);
       try {
-        // You can add pagination params if needed
         const response = await (
           await import("../utils/apiClient")
         ).apiClient.getContacts(1, 100);
-        setContacts(response.contacts || response || []);
+        // response.contacts is array, response.pagination is object
+        setContacts(response && response.contacts ? response.contacts : []);
       } catch (error) {
         console.error("Failed to fetch contacts:", error);
       } finally {
