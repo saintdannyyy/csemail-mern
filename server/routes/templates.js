@@ -1,205 +1,275 @@
-const express = require('express');
-// const { v4: uuidv4 } = require('uuid');
-const supabase = require('../config/database');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const express = require("express");
+const Template = require("../models/Template");
+const Campaign = require("../models/Campaign");
+const AuditLog = require("../models/AuditLog");
+const { authenticateToken, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
 
 // Get all templates
-router.get('/', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const { search } = req.query;
+router.get(
+  "/",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { search } = req.query;
 
-    let query = supabase
-      .from('email_templates')
-      .select('*');
+      // Get all templates
+      router.get(
+        "/",
+        authenticateToken,
+        requireRole(["admin", "editor"]),
+        async (req, res) => {
+          try {
+            const { search } = req.query;
 
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+            let query = {};
+
+            if (search) {
+              query.$or = [
+                { name: new RegExp(search, "i") },
+                { description: new RegExp(search, "i") },
+              ];
+            }
+
+            const templates = await Template.find(query).sort({
+              isDefault: -1,
+              createdAt: -1,
+            });
+
+            res.json(templates || []);
+          } catch (error) {
+            console.error("Get templates error:", error);
+            res.status(500).json({ error: "Failed to fetch templates" });
+          }
+        }
+      );
+
+      res.json(templates || []);
+    } catch (error) {
+      console.error("Get templates error:", error);
+      res.status(500).json({ error: "Failed to fetch templates" });
     }
-
-    const { data: templates, error } = await query.order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    res.json(templates || []);
-  } catch (error) {
-    console.error('Get templates error:', error);
-    res.status(500).json({ error: 'Failed to fetch templates' });
   }
-});
+);
 
 // Create template
-router.post('/', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const { name, description, htmlContent, thumbnailUrl, isDefault = false } = req.body;
-
-    if (!name || !htmlContent) {
-      return res.status(400).json({ error: 'Name and HTML content are required' });
-    }
-
-    const templateId = uuidv4();
-    const { data: template, error } = await supabase
-      .from('email_templates')
-      .insert({
-        id: templateId,
+router.post(
+  "/",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const {
         name,
         description,
-        html_content: htmlContent,
-        thumbnail_url: thumbnailUrl,
-        is_default: isDefault,
-        created_by: req.user.id
-      })
-      .select()
-      .single();
+        htmlContent,
+        thumbnailUrl,
+        isDefault = false,
+      } = req.body;
 
-    if (error) throw error;
+      if (!name || !htmlContent) {
+        return res
+          .status(400)
+          .json({ error: "Name and HTML content are required" });
+      }
 
-    // Log audit event
-    await supabase.from('audit_logs').insert({
-      user_id: req.user.id,
-      action: 'template_created',
-      target_type: 'template',
-      target_id: templateId,
-      details: { name, description }
-    });
+      const template = new Template({
+        name,
+        description,
+        htmlContent,
+        thumbnailUrl,
+        isDefault,
+        createdBy: req.user.userId,
+      });
 
-    res.status(201).json(template);
-  } catch (error) {
-    console.error('Create template error:', error);
-    res.status(500).json({ error: 'Failed to create template' });
+      await template.save();
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user.userId,
+        action: "template_created",
+        targetType: "template",
+        targetId: template._id,
+        details: { name, description },
+      });
+
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Create template error:", error);
+      res.status(500).json({ error: "Failed to create template" });
+    }
   }
-});
+);
 
 // Update template
-router.put('/:id', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, description, htmlContent, thumbnailUrl, isDefault } = req.body;
+router.put(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description, htmlContent, thumbnailUrl, isDefault } =
+        req.body;
 
-    const { data: template, error } = await supabase
-      .from('email_templates')
-      .update({
-        name,
-        description,
-        html_content: htmlContent,
-        thumbnail_url: thumbnailUrl,
-        is_default: isDefault,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
+      // Update template
+      router.put(
+        "/:id",
+        authenticateToken,
+        requireRole(["admin", "editor"]),
+        async (req, res) => {
+          try {
+            const { id } = req.params;
+            const { name, description, htmlContent, thumbnailUrl, isDefault } =
+              req.body;
 
-    if (error) throw error;
+            const template = await Template.findByIdAndUpdate(
+              id,
+              {
+                name,
+                description,
+                htmlContent,
+                thumbnailUrl,
+                isDefault,
+                updatedAt: new Date(),
+              },
+              { new: true }
+            );
 
-    if (!template) {
-      return res.status(404).json({ error: 'Template not found' });
+            if (!template) {
+              return res.status(404).json({ error: "Template not found" });
+            }
+
+            // Log audit event
+            await AuditLog.create({
+              userId: req.user.userId,
+              action: "template_updated",
+              targetType: "template",
+              targetId: template._id,
+              details: { name, description },
+            });
+
+            res.json(template);
+          } catch (error) {
+            console.error("Update template error:", error);
+            res.status(500).json({ error: "Failed to update template" });
+          }
+        }
+      );
+
+      res.json(template);
+    } catch (error) {
+      console.error("Update template error:", error);
+      res.status(500).json({ error: "Failed to update template" });
     }
-
-    // Log audit event
-    await supabase.from('audit_logs').insert({
-      user_id: req.user.id,
-      action: 'template_updated',
-      target_type: 'template',
-      target_id: id,
-      details: { name, description }
-    });
-
-    res.json(template);
-  } catch (error) {
-    console.error('Update template error:', error);
-    res.status(500).json({ error: 'Failed to update template' });
   }
-});
+);
 
 // Delete template
-router.delete('/:id', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const { id } = req.params;
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
 
-    // Check if template is being used in campaigns
-    const { data: campaigns } = await supabase
-      .from('campaigns')
-      .select('id')
-      .eq('template_id', id)
-      .limit(1);
+      // Delete template
+      router.delete(
+        "/:id",
+        authenticateToken,
+        requireRole(["admin", "editor"]),
+        async (req, res) => {
+          try {
+            const { id } = req.params;
 
-    if (campaigns && campaigns.length > 0) {
-      return res.status(400).json({ error: 'Template is being used by campaigns and cannot be deleted' });
+            // Check if template is being used in campaigns
+            const campaigns = await Campaign.find({ template: id }).limit(1);
+
+            if (campaigns && campaigns.length > 0) {
+              return res
+                .status(400)
+                .json({
+                  error:
+                    "Template is being used by campaigns and cannot be deleted",
+                });
+            }
+
+            const template = await Template.findByIdAndDelete(id);
+
+            if (!template) {
+              return res.status(404).json({ error: "Template not found" });
+            }
+
+            // Log audit event
+            await AuditLog.create({
+              userId: req.user.userId,
+              action: "template_deleted",
+              targetType: "template",
+              targetId: id,
+            });
+
+            res.json({ message: "Template deleted successfully" });
+          } catch (error) {
+            console.error("Delete template error:", error);
+            res.status(500).json({ error: "Failed to delete template" });
+          }
+        }
+      );
+
+      res.json({ message: "Template deleted successfully" });
+    } catch (error) {
+      console.error("Delete template error:", error);
+      res.status(500).json({ error: "Failed to delete template" });
     }
-
-    const { error } = await supabase
-      .from('email_templates')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    // Log audit event
-    await supabase.from('audit_logs').insert({
-      user_id: req.user.id,
-      action: 'template_deleted',
-      target_type: 'template',
-      target_id: id
-    });
-
-    res.json({ message: 'Template deleted successfully' });
-  } catch (error) {
-    console.error('Delete template error:', error);
-    res.status(500).json({ error: 'Failed to delete template' });
   }
-});
+);
 
 // Duplicate template
-router.post('/:id/duplicate', authenticateToken, requireRole(['admin', 'editor']), async (req, res) => {
-  try {
-    const { id } = req.params;
+router.post(
+  "/:id/duplicate",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
 
-    // Get original template
-    const { data: originalTemplate, error: getError } = await supabase
-      .from('email_templates')
-      .select('*')
-      .eq('id', id)
-      .single();
+      // Get original template
+      const originalTemplate = await Template.findById(id);
 
-    if (getError || !originalTemplate) {
-      return res.status(404).json({ error: 'Template not found' });
-    }
+      if (!originalTemplate) {
+        return res.status(404).json({ error: "Template not found" });
+      }
 
-    // Create duplicate
-    const newTemplateId = uuidv4();
-    const { data: newTemplate, error: createError } = await supabase
-      .from('email_templates')
-      .insert({
-        id: newTemplateId,
+      // Create duplicate
+      const newTemplate = new Template({
         name: `${originalTemplate.name} (Copy)`,
         description: originalTemplate.description,
-        html_content: originalTemplate.html_content,
-        thumbnail_url: originalTemplate.thumbnail_url,
-        is_default: false,
-        created_by: req.user.id
-      })
-      .select()
-      .single();
+        htmlContent: originalTemplate.htmlContent,
+        thumbnailUrl: originalTemplate.thumbnailUrl,
+        isDefault: false,
+        createdBy: req.user.userId,
+      });
 
-    if (createError) throw createError;
+      await newTemplate.save();
 
-    // Log audit event
-    await supabase.from('audit_logs').insert({
-      user_id: req.user.id,
-      action: 'template_duplicated',
-      target_type: 'template',
-      target_id: newTemplateId,
-      details: { originalId: id, originalName: originalTemplate.name }
-    });
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user.userId,
+        action: "template_duplicated",
+        targetType: "template",
+        targetId: newTemplate._id,
+        details: { originalId: id, originalName: originalTemplate.name },
+      });
 
-    res.status(201).json(newTemplate);
-  } catch (error) {
-    console.error('Duplicate template error:', error);
-    res.status(500).json({ error: 'Failed to duplicate template' });
+      res.status(201).json(newTemplate);
+    } catch (error) {
+      console.error("Duplicate template error:", error);
+      res.status(500).json({ error: "Failed to duplicate template" });
+    }
   }
-});
+);
 
 module.exports = router;

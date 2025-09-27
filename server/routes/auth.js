@@ -2,8 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-// const { v4: uuidv4 } = require('uuid');
-// const supabase = require('../config/database');
+const AuditLog = require("../models/AuditLog");
 const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
@@ -38,7 +37,6 @@ router.post("/login", async (req, res) => {
           // createdAt: user.createdAt,
           // lastLoginAt: new Date().toISOString(),
         },
-        
       });
     }
   } catch (error) {
@@ -103,12 +101,12 @@ router.get("/me", authenticateToken, (req, res) => {
 router.post("/logout", authenticateToken, async (req, res) => {
   try {
     // Log audit event
-    await supabase.from("audit_logs").insert({
-      user_id: req.user.id,
+    await AuditLog.create({
+      userId: req.user.userId,
       action: "user_logout",
-      target_type: "user",
-      target_id: req.user.id,
-      ip_address: req.ip,
+      targetType: "user",
+      targetId: req.user.userId,
+      ipAddress: req.ip,
       user_agent: req.get("User-Agent"),
     });
 

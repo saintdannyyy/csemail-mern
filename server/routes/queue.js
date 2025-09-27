@@ -1,5 +1,6 @@
 const express = require('express');
-const supabase = require('../config/database');
+const Queue = require('../models/Queue');
+const Campaign = require('../models/Campaign');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -7,26 +8,16 @@ const router = express.Router();
 // Get queue statistics
 router.get('/stats', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
+// Get queue statistics
+router.get('/stats', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
     // Get job statistics by status
-    const { data: jobStats } = await supabase
-      .from('email_jobs')
-      .select('status')
-      .order('created_at', { ascending: false });
+    const jobStats = await Queue.find();
 
     // Get recent jobs
-    const { data: recentJobs } = await supabase
-      .from('email_jobs')
-      .select(`
-        id,
-        email,
-        status,
-        attempt_count,
-        last_attempt_at,
-        error_message,
-        created_at,
-        campaigns!inner(name, subject)
-      `)
-      .order('created_at', { ascending: false })
+    const recentJobs = await Queue.find()
+      .populate('campaign', 'name subject')
+      .sort({ createdAt: -1 })
       .limit(50);
 
     // Calculate statistics
@@ -40,12 +31,11 @@ router.get('/stats', authenticateToken, requireRole(['admin']), async (req, res)
     };
 
     // Get processing rate (jobs per minute in last hour)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: recentSentJobs } = await supabase
-      .from('email_jobs')
-      .select('sent_at')
-      .eq('status', 'sent')
-      .gte('sent_at', oneHourAgo);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentSentJobs = await Queue.find({
+      status: 'sent',
+      sentAt: { $gte: oneHourAgo }
+    });
 
     const processingRate = recentSentJobs ? Math.round(recentSentJobs.length / 60) : 0;
 
