@@ -30,14 +30,16 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
-    const headers: HeadersInit = {
+
+    // Use a plain object for headers to allow custom keys
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     // Add auth token if available
     if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+      headers["authorization"] = `Bearer ${this.token}`;
     }
 
     const config: RequestInit = {
@@ -153,3 +155,10 @@ class ApiClient {
 // Create and export a singleton instance
 export const apiClient = new ApiClient();
 export default apiClient;
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_URL}${endpoint}`, options);
+  return res.json();
+}
