@@ -4,11 +4,24 @@ const mongoose = require("mongoose");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../.env") });
+require("dotenv").config({ path: path.join(__dirname, "/.env") });
+
+
+// Add validation for required environment variables
+if (!process.env.MONGO_URI) {
+  console.error("Error: MONGO_URI environment variable is not defined");
+  console.log("Please check your .env file in the root directory");
+  process.exit(1);
+}
+
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(async () => console.log("Connected to MongoDB"))
+  .then(async () => {
+    console.log("Connected to MongoDB");
+    // Create admin user if it doesn't exist
+    // await createAdminUser();
+  })
   .catch((error) => console.log("MongoDB Error", error));
 
 const authRoutes = require("./routes/auth");
@@ -20,6 +33,7 @@ const queueRoutes = require("./routes/queue");
 const userRoutes = require("./routes/users");
 const settingsRoutes = require("./routes/settings");
 const auditRoutes = require("./routes/audit");
+const createAdminUser = require("./create-admin");
 
 const app = express();
 const PORT = process.env.PORT || 3001;

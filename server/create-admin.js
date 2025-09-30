@@ -42,4 +42,4 @@ async function createAdminUser() {
   }
 }
 
-createAdminUser();
+module.exports = createAdminUser;
