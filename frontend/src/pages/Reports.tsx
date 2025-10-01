@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  BarChart3,
-  TrendingUp,
-  Download,
-  Calendar,
-  Mail,
-  Eye,
-  MousePointer,
-  AlertTriangle,
-  Users,
-  Send,
-} from "lucide-react";
+import { Download, Mail, Eye, MousePointer, Send } from "lucide-react";
 
 interface DashboardStats {
   totalCampaigns: number;
