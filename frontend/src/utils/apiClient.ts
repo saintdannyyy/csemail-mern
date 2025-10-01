@@ -142,6 +142,10 @@ class ApiClient {
     return this.post('/api/templates', template);
   }
 
+  async seedTemplates(): Promise<any> {
+    return this.post('/api/templates/seed');
+  }
+
   // Reports methods
   async getReports(): Promise<any> {
     return this.get('/api/reports/dashboard');
