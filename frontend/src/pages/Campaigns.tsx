@@ -33,7 +33,9 @@ export const Campaigns: React.FC = () => {
         setCampaigns(response.campaigns || response || []);
       } catch (error) {
         console.error("Failed to fetch campaigns:", error);
-        setError(error instanceof Error ? error.message : "Failed to fetch campaigns");
+        setError(
+          error instanceof Error ? error.message : "Failed to fetch campaigns"
+        );
       } finally {
         setLoading(false);
       }
@@ -173,9 +175,14 @@ export const Campaigns: React.FC = () => {
               ) : error ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8">
-                    <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>
+                    <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+                      {error}
+                    </div>
                     <button
-                      onClick={() => { setError(null); window.location.reload(); }}
+                      onClick={() => {
+                        setError(null);
+                        window.location.reload();
+                      }}
                       className="px-4 py-2 bg-blue-600 text-white rounded"
                     >
                       Retry
@@ -185,10 +192,9 @@ export const Campaigns: React.FC = () => {
               ) : filteredCampaigns.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-400">
-                    {searchTerm || selectedFilter !== 'all' ? 
-                      "No campaigns found matching your filters." : 
-                      "No campaigns found. Create your first campaign to get started."
-                    }
+                    {searchTerm || selectedFilter !== "all"
+                      ? "No campaigns found matching your filters."
+                      : "No campaigns found. Create your first campaign to get started."}
                   </td>
                 </tr>
               ) : (
