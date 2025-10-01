@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Settings,
@@ -10,6 +10,7 @@ import {
 import { AdvancedEmailEditor } from "../EmailEditor/AdvancedEmailEditor";
 import { TemplateTesting } from "./TemplateTesting";
 import { TemplateManagement } from "./TemplateManagement";
+import { apiClient } from "../../utils/apiClient";
 
 interface TemplateHubProps {
   onTemplateCreate?: (template: any) => void;
@@ -24,35 +25,71 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
     "library" | "editor" | "testing" | "management"
   >("library");
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [templates] = useState([
-    {
-      id: "1",
-      name: "Welcome Series - Onboarding",
-      category: "welcome",
-      description: "Professional welcome email template for new users",
-      thumbnail: "/api/placeholder/300/200",
-      lastModified: "2024-01-15",
-      isDefault: true,
-    },
-    {
-      id: "2",
-      name: "Monthly Newsletter",
-      category: "newsletter",
-      description: "Clean newsletter template with sections for updates",
-      thumbnail: "/api/placeholder/300/200",
-      lastModified: "2024-01-14",
-      isDefault: true,
-    },
-    {
-      id: "3",
-      name: "Product Launch Announcement",
-      category: "promotional",
-      description: "Eye-catching template for product launches",
-      thumbnail: "/api/placeholder/300/200",
-      lastModified: "2024-01-13",
-      isDefault: true,
-    },
-  ]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch templates from API
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.getTemplates();
+      setTemplates(response || []);
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+      setError('Failed to load templates');
+      setTemplates([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTemplate = async (templateData: any) => {
+    try {
+      const newTemplate = await apiClient.createTemplate(templateData);
+      setTemplates(prev => [...prev, newTemplate]);
+      if (onTemplateCreate) {
+        onTemplateCreate(newTemplate);
+      }
+      // Switch back to library view to see the new template
+      setActiveView("library");
+    } catch (err) {
+      console.error('Error creating template:', err);
+      setError('Failed to create template');
+    }
+  };
+
+  const handleUpdateTemplate = async (templateId: string, updates: any) => {
+    try {
+      const updatedTemplate = await apiClient.updateTemplate(templateId, updates);
+      setTemplates(prev => prev.map(t => t._id === templateId ? updatedTemplate : t));
+      setSelectedTemplate(updatedTemplate);
+      if (onTemplateUpdate) {
+        onTemplateUpdate(templateId, updatedTemplate);
+      }
+    } catch (err) {
+      console.error('Error updating template:', err);
+      setError('Failed to update template');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      await apiClient.deleteTemplate(templateId);
+      setTemplates(prev => prev.filter(t => t._id !== templateId));
+      if (selectedTemplate?._id === templateId) {
+        setSelectedTemplate(null);
+      }
+    } catch (err) {
+      console.error('Error deleting template:', err);
+      setError('Failed to delete template');
+    }
+  };
 
   const ViewSelector = () => (
     <div className="border-b border-gray-200 mb-6">
@@ -98,7 +135,10 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
             Import
           </button>
           <button
-            onClick={() => setActiveView("editor")}
+            onClick={() => {
+              setSelectedTemplate(null);
+              setActiveView("editor");
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
@@ -107,84 +147,127 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
         </div>
       </div>
 
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          "All",
-          "Welcome",
-          "Newsletter",
-          "Promotional",
-          "Transactional",
-          "Announcement",
-        ].map((category) => (
-          <button
-            key={category}
-            className="px-4 py-2 rounded-full text-sm border border-gray-300 hover:bg-gray-50"
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <button 
+            onClick={fetchTemplates}
+            className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
           >
-            {category}
+            Retry
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Loading templates...</span>
+        </div>
+      )}
+
+      {/* Category Filter */}
+      {!loading && !error && (
+        <div className="flex flex-wrap gap-2">
+          {[
+            "All",
+            "Welcome",
+            "Newsletter",
+            "Promotional",
+            "Transactional",
+            "Announcement",
+          ].map((category) => (
+            <button
+              key={category}
+              className="px-4 py-2 rounded-full text-sm border border-gray-300 hover:bg-gray-50"
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Template Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {templates.map((template) => (
-          <div
-            key={template.id}
-            className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-          >
-            <div className="aspect-w-16 aspect-h-9 bg-gray-100">
-              <img
-                src={template.thumbnail}
-                alt={template.name}
-                className="w-full h-48 object-cover"
-              />
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {templates.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500 mb-4">No templates found</p>
+              <button
+                onClick={() => {
+                  setSelectedTemplate(null);
+                  setActiveView("editor");
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Create Your First Template
+              </button>
             </div>
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-medium text-gray-900 text-sm">
-                  {template.name}
-                </h3>
-                {template.isDefault && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                    Default
-                  </span>
-                )}
+          ) : (
+            templates.map((template) => (
+              <div
+                key={template._id}
+                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+              >
+                <div className="aspect-w-16 aspect-h-9 bg-gray-100">
+                  <img
+                    src={template.thumbnailUrl || "/api/placeholder/300/200"}
+                    alt={template.name}
+                    className="w-full h-48 object-cover"
+                  />
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-gray-900 text-sm">
+                      {template.name}
+                    </h3>
+                    {template.isDefault && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {template.description}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                    <span className="capitalize">{template.category}</span>
+                    <span>Modified {new Date(template.updatedAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedTemplate(template);
+                        setActiveView("editor");
+                      }}
+                      className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedTemplate(template);
+                        setActiveView("testing");
+                      }}
+                      className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200"
+                    >
+                      Test
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteTemplate(template._id)}
+                      className="px-3 py-2 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mb-3">
-                {template.description}
-              </p>
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                <span className="capitalize">{template.category}</span>
-                <span>Modified {template.lastModified}</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setSelectedTemplate(template);
-                    setActiveView("editor");
-                  }}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedTemplate(template);
-                    setActiveView("testing");
-                  }}
-                  className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200"
-                >
-                  Test
-                </button>
-                <button className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200">
-                  <Download className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -204,12 +287,30 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
             </p>
           </div>
           <AdvancedEmailEditor
-            template={selectedTemplate}
-            onSave={(template) => {
+            content={selectedTemplate?.content || selectedTemplate?.htmlContent || ""}
+            onChange={(newContent) => {
+              // Update selectedTemplate content (local state only)
               if (selectedTemplate) {
-                onTemplateUpdate?.(selectedTemplate.id, template);
+                setSelectedTemplate({
+                  ...selectedTemplate,
+                  content: newContent,
+                });
+              }
+            }}
+            onSave={() => {
+              if (selectedTemplate) {
+                // Update existing template
+                handleUpdateTemplate(selectedTemplate._id, selectedTemplate);
               } else {
-                onTemplateCreate?.(template);
+                // Create new template - need to implement a form for template metadata
+                const templateData = {
+                  name: "New Template",
+                  subject: "Template Subject",
+                  content: selectedTemplate?.content || "",
+                  category: "other",
+                  description: "New template description"
+                };
+                handleCreateTemplate(templateData);
               }
             }}
           />
@@ -227,7 +328,13 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
                 : "Select a template to test"}
             </p>
           </div>
-          <TemplateTesting templateId={selectedTemplate?.id} />
+          <TemplateTesting
+            templateContent={
+              selectedTemplate?.content || selectedTemplate?.htmlContent || ""
+            }
+            templateSubject={selectedTemplate?.subject || ""}
+            variables={selectedTemplate?.variables || {}}
+          />
         </div>
       )}
       {activeView === "management" && (
