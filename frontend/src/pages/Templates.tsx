@@ -17,17 +17,21 @@ export const Templates: React.FC = () => {
 
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTemplates = async () => {
       setLoading(true);
+      setError(null);
       try {
         const response = await (
           await import("../utils/apiClient")
         ).apiClient.getTemplates();
         setTemplates(response.templates || response || []);
-      } catch (error) {
-        console.error("Failed to fetch templates:", error);
+      } catch (err: any) {
+        setError(err?.message || "Failed to fetch templates");
+        setTemplates([]);
+        console.error("Failed to fetch templates:", err);
       } finally {
         setLoading(false);
       }
@@ -102,18 +106,33 @@ export const Templates: React.FC = () => {
         </div>
       </div>
 
-      {viewMode === "grid" ? (
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-8">
+          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Retry
+          </button>
+        </div>
+      ) : filteredTemplates.length === 0 ? (
+        <div className="text-center py-8 text-gray-400">
+          {searchTerm ? `No templates found matching "${searchTerm}"` : "No templates found. Create your first template to get started."}
+        </div>
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            <div className="col-span-full text-center py-8 text-gray-400">
-              Loading templates...
-            </div>
-          ) : filteredTemplates.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-gray-400">
-              No templates found.
-            </div>
-          ) : (
-            filteredTemplates.map((template) => (
+          {filteredTemplates.map((template) => (
               <div
                 key={template.id}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
@@ -172,8 +191,7 @@ export const Templates: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            ))}
         </div>
       ) : (
         <div className="bg-white shadow-sm rounded-lg border border-gray-200">
