@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Grid, 
-  Search, 
-  Filter, 
-  Eye, 
-  Copy, 
+import React, { useState, useEffect } from "react";
+import {
+  Grid,
+  Search,
+  Filter,
+  Eye,
+  Copy,
   Star,
   Tag,
   Clock,
   User,
-  Download
-} from 'lucide-react';
+  Download,
+} from "lucide-react";
 
 interface TemplateVariable {
   name: string;
-  type: 'text' | 'email' | 'url' | 'number' | 'textarea';
+  type: "text" | "email" | "url" | "number" | "textarea";
   defaultValue: string;
   required: boolean;
   description: string;
@@ -41,22 +41,27 @@ interface TemplateLibraryProps {
 }
 
 const CATEGORIES = [
-  { value: 'all', label: 'All Categories', icon: '📧' },
-  { value: 'welcome', label: 'Welcome', icon: '👋' },
-  { value: 'newsletter', label: 'Newsletter', icon: '📰' },
-  { value: 'promotional', label: 'Promotional', icon: '🎉' },
-  { value: 'transactional', label: 'Transactional', icon: '📋' },
-  { value: 'announcement', label: 'Announcement', icon: '📢' },
+  { value: "all", label: "All Categories", icon: "📧" },
+  { value: "welcome", label: "Welcome", icon: "👋" },
+  { value: "newsletter", label: "Newsletter", icon: "📰" },
+  { value: "promotional", label: "Promotional", icon: "🎉" },
+  { value: "transactional", label: "Transactional", icon: "📋" },
+  { value: "announcement", label: "Announcement", icon: "📢" },
 ];
 
-const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) => {
-  const [templates, setTemplates] = useState<Record<string, TemplateLibraryItem[]>>({});
+const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
+  onTemplateSelect,
+}) => {
+  const [templates, setTemplates] = useState<
+    Record<string, TemplateLibraryItem[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [previewTemplate, setPreviewTemplate] = useState<TemplateLibraryItem | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [previewTemplate, setPreviewTemplate] =
+    useState<TemplateLibraryItem | null>(null);
   const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
@@ -66,22 +71,25 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const category = selectedCategory === 'all' ? '' : selectedCategory;
-      const response = await fetch(`/api/templates/library${category ? `?category=${category}` : ''}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      const category = selectedCategory === "all" ? "" : selectedCategory;
+      const response = await fetch(
+        `/api/templates/library${category ? `?category=${category}` : ""}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch templates');
+        throw new Error("Failed to fetch templates");
       }
 
       const data = await response.json();
       setTemplates(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -90,23 +98,23 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
   const seedTemplates = async () => {
     try {
       setSeeding(true);
-      const response = await fetch('/api/templates/seed', {
-        method: 'POST',
+      const response = await fetch("/api/templates/seed", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to seed templates');
+        throw new Error("Failed to seed templates");
       }
 
       const result = await response.json();
-      console.log('Seeding result:', result);
+      console.log("Seeding result:", result);
       await fetchTemplates(); // Refresh the list
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to seed templates');
+      setError(err instanceof Error ? err.message : "Failed to seed templates");
     } finally {
       setSeeding(false);
     }
@@ -114,54 +122,70 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
 
   const cloneTemplate = async (template: TemplateLibraryItem) => {
     try {
-      const response = await fetch(`/api/templates/library/${template._id}/clone`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: `${template.name} (My Copy)`
-        })
-      });
+      const response = await fetch(
+        `/api/templates/library/${template._id}/clone`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: `${template.name} (My Copy)`,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to clone template');
+        throw new Error("Failed to clone template");
       }
 
       const clonedTemplate = await response.json();
       onTemplateSelect(clonedTemplate);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to clone template');
+      setError(err instanceof Error ? err.message : "Failed to clone template");
     }
   };
 
   const filteredTemplates = () => {
     const allTemplates = Object.values(templates).flat();
-    return allTemplates.filter(template =>
-      template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      template.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    return allTemplates.filter(
+      (template) =>
+        template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        template.tags.some((tag) =>
+          tag.toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
   };
 
-  const TemplateCard: React.FC<{ template: TemplateLibraryItem }> = ({ template }) => (
+  const TemplateCard: React.FC<{ template: TemplateLibraryItem }> = ({
+    template,
+  }) => (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200">
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 mb-1">{template.name}</h3>
-            <p className="text-sm text-gray-600 line-clamp-2">{template.subject}</p>
+            <h3 className="font-semibold text-gray-900 mb-1">
+              {template.name}
+            </h3>
+            <p className="text-sm text-gray-600 line-clamp-2">
+              {template.subject}
+            </p>
           </div>
           <div className="flex items-center gap-1 ml-2">
             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-              {CATEGORIES.find(c => c.value === template.category)?.icon} {template.category}
+              {CATEGORIES.find((c) => c.value === template.category)?.icon}{" "}
+              {template.category}
             </span>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-1 mb-3">
           {template.tags.slice(0, 3).map((tag, index) => (
-            <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+            <span
+              key={index}
+              className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+            >
               <Tag className="w-3 h-3" />
               {tag}
             </span>
@@ -226,7 +250,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
               ✕
             </button>
           </div>
-          
+
           <div className="flex max-h-[calc(90vh-8rem)]">
             <div className="w-1/3 p-4 border-r overflow-y-auto">
               <h4 className="font-semibold mb-3">Template Variables</h4>
@@ -234,12 +258,16 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
                 {previewTemplate.variables.map((variable, index) => (
                   <div key={index} className="border rounded p-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-medium text-sm">{variable.name}</span>
+                      <span className="font-medium text-sm">
+                        {variable.name}
+                      </span>
                       {variable.required && (
                         <span className="text-red-500 text-xs">*</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 mb-2">{variable.description}</p>
+                    <p className="text-xs text-gray-600 mb-2">
+                      {variable.description}
+                    </p>
                     <div className="text-xs text-gray-500">
                       Type: {variable.type} | Default: {variable.defaultValue}
                     </div>
@@ -247,16 +275,16 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
                 ))}
               </div>
             </div>
-            
+
             <div className="flex-1 p-4 overflow-y-auto">
               <h4 className="font-semibold mb-3">Email Preview</h4>
-              <div 
+              <div
                 className="border rounded p-4 bg-gray-50 min-h-[400px]"
                 dangerouslySetInnerHTML={{ __html: previewTemplate.content }}
               />
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-2 p-4 border-t">
             <button
               onClick={() => setPreviewTemplate(null)}
@@ -292,7 +320,9 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Template Library</h1>
-          <p className="text-gray-600">Choose from professionally designed email templates</p>
+          <p className="text-gray-600">
+            Choose from professionally designed email templates
+          </p>
         </div>
         <div className="flex gap-2">
           <button
@@ -301,10 +331,10 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            {seeding ? 'Seeding...' : 'Seed Templates'}
+            {seeding ? "Seeding..." : "Seed Templates"}
           </button>
           <button
-            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
             className="p-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
           >
             <Grid className="w-4 h-4" />
@@ -325,7 +355,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
             />
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((category) => (
             <button
@@ -333,8 +363,8 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
               onClick={() => setSelectedCategory(category.value)}
               className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors ${
                 selectedCategory === category.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
               <span>{category.icon}</span>
@@ -355,11 +385,19 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateSelect }) =
           <div className="text-gray-500 mb-4">
             <Download className="w-12 h-12 mx-auto mb-2" />
             <p>No templates found in the library.</p>
-            <p className="text-sm">Click "Seed Templates" to load predefined templates.</p>
+            <p className="text-sm">
+              Click "Seed Templates" to load predefined templates.
+            </p>
           </div>
         </div>
       ) : (
-        <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'} gap-6`}>
+        <div
+          className={`grid ${
+            viewMode === "grid"
+              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+              : "grid-cols-1"
+          } gap-6`}
+        >
           {filteredTemplates().map((template) => (
             <TemplateCard key={template._id} template={template} />
           ))}
