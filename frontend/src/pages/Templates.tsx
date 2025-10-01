@@ -8,12 +8,18 @@ import {
   Trash2,
   Grid,
   List,
+  BookOpen,
+  FileText,
 } from "lucide-react";
 import { EmailTemplate } from "../types";
+import TemplateLibrary from "../components/Templates/TemplateLibrary";
 
 export const Templates: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [activeTab, setActiveTab] = useState<"templates" | "library">(
+    "templates"
+  );
 
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -46,6 +52,13 @@ export const Templates: React.FC = () => {
         template.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const handleTemplateSelect = (template: any) => {
+    // Handle template selection from library - could navigate to editor
+    console.log('Selected template:', template);
+    // You could navigate to the email editor with this template
+    // navigate('/email-editor', { state: { template } });
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -58,40 +71,74 @@ export const Templates: React.FC = () => {
               Create and manage reusable email templates
             </p>
           </div>
-          <div className="flex space-x-3">
-            <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Template
+          {activeTab === 'templates' && (
+            <div className="flex space-x-3">
+              <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Template
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-4 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'templates'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FileText className="w-4 h-4 inline mr-2" />
+              My Templates
             </button>
-          </div>
+            <button
+              onClick={() => setActiveTab('library')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'library'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 inline mr-2" />
+              Template Library
+            </button>
+          </nav>
         </div>
       </div>
 
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-          <div className="relative max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="Search templates..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              className={`p-2 rounded-md ${
-                viewMode === "grid"
-                  ? "bg-blue-100 text-blue-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              onClick={() => setViewMode("grid")}
-            >
-              <Grid className="h-5 w-5" />
-            </button>
+      {activeTab === 'library' ? (
+        <TemplateLibrary onTemplateSelect={handleTemplateSelect} />
+      ) : (
+        <>
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+              <div className="relative max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Search templates..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  className={`p-2 rounded-md ${
+                    viewMode === "grid"
+                      ? "bg-blue-100 text-blue-600"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid className="h-5 w-5" />
+                </button>
             <button
               className={`p-2 rounded-md ${
                 viewMode === "list"
@@ -302,6 +349,8 @@ export const Templates: React.FC = () => {
             </table>
           </div>
         </div>
+          )}
+        </>
       )}
     </div>
   );
