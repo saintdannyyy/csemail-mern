@@ -86,13 +86,16 @@ export const UserManagement: React.FC = () => {
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         role: newUser.role,
-        sendInvite: true
+        sendInvite: true,
       });
 
       // Map the response to frontend format
       const user: User = {
         ...response.user,
-        id: response.user._id || response.user.id || `temp-${Date.now()}-${Math.random()}`,
+        id:
+          response.user._id ||
+          response.user.id ||
+          `temp-${Date.now()}-${Math.random()}`,
       };
 
       setUsers((prev) => [user, ...prev]);
@@ -120,9 +123,13 @@ export const UserManagement: React.FC = () => {
 
   const resetUserPassword = async (userId: string) => {
     try {
-      const response = await apiClient.post<any>(`/api/users/${userId}/reset-password`);
+      const response = await apiClient.post<any>(
+        `/api/users/${userId}/reset-password`
+      );
       if (response.tempPassword) {
-        alert(`Password reset successfully. Temporary password: ${response.tempPassword}`);
+        alert(
+          `Password reset successfully. Temporary password: ${response.tempPassword}`
+        );
       } else {
         alert("Password reset email sent to user");
       }
