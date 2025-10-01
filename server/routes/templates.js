@@ -66,6 +66,29 @@ router.get(
   }
 );
 
+// Get single template by ID
+router.get(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const template = await Template.findById(id);
+
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.json(template);
+    } catch (error) {
+      console.error("Get template error:", error);
+      res.status(500).json({ error: "Failed to fetch template" });
+    }
+  }
+);
+
 // Seed predefined templates
 router.post(
   "/seed",
@@ -73,7 +96,8 @@ router.post(
   requireRole(["admin"]),
   async (req, res) => {
     try {
-      const result = await seedTemplates();
+      const { force } = req.body;
+      const result = await seedTemplates(force);
       if (result.success) {
         res.json(result);
       } else {
@@ -446,22 +470,30 @@ router.post(
     try {
       const {
         name,
+        subject,
+        content,
         description,
-        htmlContent,
+        category = "other",
+        tags = [],
+        variables = [],
         thumbnailUrl,
         isDefault = false,
       } = req.body;
 
-      if (!name || !htmlContent) {
+      if (!name || !subject || !content) {
         return res
           .status(400)
-          .json({ error: "Name and HTML content are required" });
+          .json({ error: "Name, subject, and content are required" });
       }
 
       const template = new Template({
         name,
+        subject,
+        content,
         description,
-        htmlContent,
+        category,
+        tags,
+        variables,
         thumbnailUrl,
         isDefault,
         createdBy: req.user.userId,
@@ -475,7 +507,7 @@ router.post(
         action: "template_created",
         targetType: "template",
         targetId: template._id,
-        details: { name, description },
+        details: { name, description, category },
       });
 
       res.status(201).json(template);
@@ -494,53 +526,47 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description, htmlContent, thumbnailUrl, isDefault } =
-        req.body;
+      const {
+        name,
+        subject,
+        content,
+        description,
+        category,
+        tags,
+        variables,
+        thumbnailUrl,
+        isDefault,
+      } = req.body;
 
-      // Update template
-      router.put(
-        "/:id",
-        authenticateToken,
-        requireRole(["admin", "editor"]),
-        async (req, res) => {
-          try {
-            const { id } = req.params;
-            const { name, description, htmlContent, thumbnailUrl, isDefault } =
-              req.body;
-
-            const template = await Template.findByIdAndUpdate(
-              id,
-              {
-                name,
-                description,
-                htmlContent,
-                thumbnailUrl,
-                isDefault,
-                updatedAt: new Date(),
-              },
-              { new: true }
-            );
-
-            if (!template) {
-              return res.status(404).json({ error: "Template not found" });
-            }
-
-            // Log audit event
-            await AuditLog.create({
-              userId: req.user.userId,
-              action: "template_updated",
-              targetType: "template",
-              targetId: template._id,
-              details: { name, description },
-            });
-
-            res.json(template);
-          } catch (error) {
-            console.error("Update template error:", error);
-            res.status(500).json({ error: "Failed to update template" });
-          }
-        }
+      const template = await Template.findByIdAndUpdate(
+        id,
+        {
+          name,
+          subject,
+          content,
+          description,
+          category,
+          tags,
+          variables,
+          thumbnailUrl,
+          isDefault,
+          updatedAt: new Date(),
+        },
+        { new: true }
       );
+
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user.userId,
+        action: "template_updated",
+        targetType: "template",
+        targetId: template._id,
+        details: { name, description, category },
+      });
 
       res.json(template);
     } catch (error) {
@@ -559,48 +585,31 @@ router.delete(
     try {
       const { id } = req.params;
 
-      // Delete template
-      router.delete(
-        "/:id",
-        authenticateToken,
-        requireRole(["admin", "editor"]),
-        async (req, res) => {
-          try {
-            const { id } = req.params;
+      // Check if template is being used in campaigns
+      const campaigns = await Campaign.find({ template: id }).limit(1);
 
-            // Check if template is being used in campaigns
-            const campaigns = await Campaign.find({ template: id }).limit(1);
+      if (campaigns && campaigns.length > 0) {
+        return res.status(400).json({
+          error: "Template is being used by campaigns and cannot be deleted",
+        });
+      }
 
-            if (campaigns && campaigns.length > 0) {
-              return res.status(400).json({
-                error:
-                  "Template is being used by campaigns and cannot be deleted",
-              });
-            }
+      const template = await Template.findByIdAndDelete(id);
 
-            const template = await Template.findByIdAndDelete(id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
 
-            if (!template) {
-              return res.status(404).json({ error: "Template not found" });
-            }
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user.userId,
+        action: "template_deleted",
+        targetType: "template",
+        targetId: template._id,
+        details: { name: template.name },
+      });
 
-            // Log audit event
-            await AuditLog.create({
-              userId: req.user.userId,
-              action: "template_deleted",
-              targetType: "template",
-              targetId: id,
-            });
-
-            res.json({ message: "Template deleted successfully" });
-          } catch (error) {
-            console.error("Delete template error:", error);
-            res.status(500).json({ error: "Failed to delete template" });
-          }
-        }
-      );
-
-      res.json({ message: "Template deleted successfully" });
+      res.json({ message: "Template deleted successfully", template });
     } catch (error) {
       console.error("Delete template error:", error);
       res.status(500).json({ error: "Failed to delete template" });
