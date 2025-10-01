@@ -1,4 +1,5 @@
 const Template = require("../models/Template");
+const User = require("../models/User");
 
 const predefinedTemplates = [
   {
@@ -160,7 +161,7 @@ const predefinedTemplates = [
       },
       {
         name: "main_content",
-        type: "textarea",
+        type: "text",
         defaultValue: "Lorem ipsum dolor sit amet...",
         required: true,
         description: "Main article content",
@@ -195,7 +196,7 @@ const predefinedTemplates = [
       },
       {
         name: "featured_content",
-        type: "textarea",
+        type: "text",
         defaultValue: "Featured content description",
         required: false,
         description: "Featured section content",
@@ -305,7 +306,7 @@ const predefinedTemplates = [
       },
       {
         name: "sale_description",
-        type: "textarea",
+        type: "text",
         defaultValue:
           "Limited time offer on all products. Save big on your favorite items!",
         required: true,
@@ -475,7 +476,7 @@ const predefinedTemplates = [
       },
       {
         name: "shipping_address",
-        type: "textarea",
+        type: "text",
         defaultValue: "123 Main St\nCity, State 12345",
         required: true,
         description: "Shipping address",
@@ -514,13 +515,13 @@ const predefinedTemplates = [
   },
 ];
 
-const seedTemplates = async () => {
+const seedTemplates = async (force = false) => {
   try {
     console.log("🌱 Starting template seeding...");
 
     // Check if templates already exist
     const existingCount = await Template.countDocuments({ isPredefined: true });
-    if (existingCount > 0) {
+    if (existingCount > 0 && !force) {
       console.log(
         `ℹ️  Found ${existingCount} existing predefined templates. Skipping seed.`
       );
@@ -530,10 +531,34 @@ const seedTemplates = async () => {
       };
     }
 
+    // If force is true, delete existing predefined templates
+    if (force && existingCount > 0) {
+      await Template.deleteMany({ isPredefined: true });
+      console.log(`🗑️  Deleted ${existingCount} existing predefined templates`);
+    }
+
+    // Find or create a system user for predefined templates
+    let systemUser = await User.findOne({ email: "system@template.internal" });
+    if (!systemUser) {
+      systemUser = new User({
+        email: "system@template.internal",
+        password: "system_generated", // This won't be used for login
+        role: "admin",
+        firstName: "System",
+        lastName: "Template Generator",
+        status: "active",
+      });
+      await systemUser.save();
+      console.log("✅ Created system user for predefined templates");
+    }
+
     // Create templates
     const createdTemplates = [];
     for (const templateData of predefinedTemplates) {
       try {
+        // Add required createdBy field
+        templateData.createdBy = systemUser._id;
+
         // Add default metadata
         templateData.metadata = {
           createdBy: "system",
