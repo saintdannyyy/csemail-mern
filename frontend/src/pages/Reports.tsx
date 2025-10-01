@@ -74,7 +74,11 @@ export const Reports: React.FC = () => {
         setCampaigns(campaignsResponse.campaigns || campaignsResponse || []);
       } catch (error) {
         console.error("Failed to fetch reports data:", error);
-        setError(error instanceof Error ? error.message : "Failed to fetch reports data");
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch reports data"
+        );
       } finally {
         setLoading(false);
       }
@@ -120,9 +124,14 @@ export const Reports: React.FC = () => {
     return (
       <div className="p-6 max-w-7xl mx-auto">
         <div className="text-center py-8">
-          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>
+          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+            {error}
+          </div>
           <button
-            onClick={() => { setError(null); window.location.reload(); }}
+            onClick={() => {
+              setError(null);
+              window.location.reload();
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded"
           >
             Retry
