@@ -144,11 +144,11 @@ class ApiClient {
 
   // Reports methods
   async getReports(): Promise<any> {
-    return this.get('/api/reports');
+    return this.get('/api/reports/dashboard');
   }
 
   async getCampaignStats(): Promise<any> {
-    return this.get('/api/reports/stats');
+    return this.get('/api/reports/campaigns');
   }
 
   // Activity methods
