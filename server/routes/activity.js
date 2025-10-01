@@ -28,48 +28,62 @@ router.get(
         // Map audit log actions to activity types and descriptions
         switch (log.action) {
           case "campaign_sent":
-            title = `Campaign "${log.details?.campaignName || 'Unknown'}" sent`;
-            description = `Delivered to ${log.details?.recipientCount || 0} recipients`;
+            title = `Campaign "${log.details?.campaignName || "Unknown"}" sent`;
+            description = `Delivered to ${
+              log.details?.recipientCount || 0
+            } recipients`;
             type = "campaign_sent";
             break;
           case "contact_imported":
             title = "Contacts imported from CSV";
-            description = `${log.details?.count || 0} new contacts added to "${log.details?.listName || 'Unknown'}" list`;
+            description = `${log.details?.count || 0} new contacts added to "${
+              log.details?.listName || "Unknown"
+            }" list`;
             type = "contact_imported";
             break;
           case "template_created":
             title = "New template created";
-            description = `"${log.details?.templateName || 'Unknown'}" template saved`;
+            description = `"${
+              log.details?.templateName || "Unknown"
+            }" template saved`;
             type = "template_created";
             break;
           case "user_login":
             title = "User logged in";
-            description = `Login from ${log.details?.ip || 'unknown IP'}`;
+            description = `Login from ${log.details?.ip || "unknown IP"}`;
             type = "report_generated";
             break;
           case "user_created":
             title = "New user created";
-            description = `User ${log.details?.email || 'unknown'} added to system`;
+            description = `User ${
+              log.details?.email || "unknown"
+            } added to system`;
             type = "report_generated";
             break;
           case "smtp_test_performed":
             title = "SMTP connection tested";
-            description = `Test ${log.details?.success ? 'successful' : 'failed'}`;
+            description = `Test ${
+              log.details?.success ? "successful" : "failed"
+            }`;
             type = "report_generated";
             break;
           default:
-            title = `${log.action.replace(/_/g, ' ')} performed`;
-            description = log.details?.description || `Action performed on ${log.targetType}`;
+            title = `${log.action.replace(/_/g, " ")} performed`;
+            description =
+              log.details?.description ||
+              `Action performed on ${log.targetType}`;
             type = "report_generated";
         }
 
         // Format timestamp as relative time
         const timestamp = formatRelativeTime(log.createdAt);
-        
+
         // Get user name
-        const user = log.userId 
-          ? `${log.userId.firstName || ''} ${log.userId.lastName || ''}`.trim() || log.userId.email
-          : 'System';
+        const user = log.userId
+          ? `${log.userId.firstName || ""} ${
+              log.userId.lastName || ""
+            }`.trim() || log.userId.email
+          : "System";
 
         return {
           id: log._id.toString(),
@@ -78,7 +92,7 @@ router.get(
           description,
           timestamp,
           user,
-          userId: log.userId
+          userId: log.userId,
         };
       });
 
@@ -97,16 +111,16 @@ router.get(
 function formatRelativeTime(date) {
   const now = new Date();
   const diff = now - new Date(date);
-  
+
   const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
-  
+
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+
   return new Date(date).toLocaleDateString();
 }
 
