@@ -133,14 +133,16 @@ export const QueueMonitor: React.FC = () => {
         stats?: QueueStats;
         processingRate?: number;
       };
-      setStats(statsResponse.stats ?? {
-        queued: 0,
-        sending: 0,
-        sent: 0,
-        failed: 0,
-        retrying: 0,
-        total: 0,
-      });
+      setStats(
+        statsResponse.stats ?? {
+          queued: 0,
+          sending: 0,
+          sent: 0,
+          failed: 0,
+          retrying: 0,
+          total: 0,
+        }
+      );
     } catch (error) {
       console.error("Failed to retry jobs:", error);
     }
