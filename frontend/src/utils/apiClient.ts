@@ -1,4 +1,4 @@
-// API client for CSEMail backend communication
+// API client for Emmisor backend communication
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 class ApiClient {

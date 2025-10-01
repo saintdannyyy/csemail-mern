@@ -41,8 +41,8 @@ export const Settings: React.FC = () => {
     username: "",
     password: "",
     secure: true,
-    fromName: "CodLogics Team",
-    fromEmail: "noreply@codlogics.com",
+    fromName: "Emmisor Team",
+    fromEmail: "noreply@emmisor.com",
   });
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
     email: [],
@@ -209,7 +209,7 @@ export const Settings: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `csemail-settings-${
+      a.download = `emmisor-settings-${
         new Date().toISOString().split("T")[0]
       }.json`;
       document.body.appendChild(a);

@@ -33,7 +33,7 @@ export const LoginForm: React.FC = () => {
             <Mail className="w-12 h-12 text-blue-600" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to CSEMail
+            Sign in to Emmisor
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             CodLogics Internal Email Platform
@@ -126,7 +126,7 @@ export const LoginForm: React.FC = () => {
           </div>
 
           <div className="mt-6 text-center text-xs text-gray-500">
-            Demo credentials: admin@csemail.com password: admin123
+            Demo credentials: admin@emmisor.com password: admin123
           </div>
         </form>
       </div>

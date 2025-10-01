@@ -25,7 +25,7 @@ async function createAdminUser() {
     const hashedPassword = await bcrypt.hash("admin123", 10);
 
     const adminUser = new User({
-      email: "admin@csemail.com",
+      email: "admin@emmisor.com",
       password: hashedPassword,
       firstName: "System",
       lastName: "Administrator",
@@ -36,7 +36,7 @@ async function createAdminUser() {
     await adminUser.save();
 
     console.log("✅ Admin user created successfully!");
-    console.log("📧 Email: admin@csemail.com");
+    console.log("📧 Email: admin@emmisor.com");
     console.log("🔑 Password: admin123");
     console.log("⚠️  Please change the password after first login.");
     console.log(`👤 Name: ${adminUser.firstName} ${adminUser.lastName}`);

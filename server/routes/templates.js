@@ -15,39 +15,27 @@ router.get(
     try {
       const { search } = req.query;
 
-      // Get all templates
-      router.get(
-        "/",
-        authenticateToken,
-        requireRole(["admin", "editor"]),
-        async (req, res) => {
-          try {
-            const { search } = req.query;
+      let query = {};
 
-            let query = {};
+      if (search) {
+        query.$or = [
+          { name: new RegExp(search, "i") },
+          { description: new RegExp(search, "i") },
+        ];
+      }
 
-            if (search) {
-              query.$or = [
-                { name: new RegExp(search, "i") },
-                { description: new RegExp(search, "i") },
-              ];
-            }
-
-            const templates = await Template.find(query).sort({
-              isDefault: -1,
-              createdAt: -1,
-            });
-
-            res.json(templates || []);
-          } catch (error) {
-            console.error("Get templates error:", error);
-            res.status(500).json({ error: "Failed to fetch templates" });
-          }
-        }
-      );
+      const templates = await Template.find(query).sort({
+        isDefault: -1,
+        createdAt: -1,
+      });
 
       res.json(templates || []);
     } catch (error) {
+      console.error("Get templates error:", error);
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  }
+);
       console.error("Get templates error:", error);
       res.status(500).json({ error: "Failed to fetch templates" });
     }

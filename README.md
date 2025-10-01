@@ -1,11 +1,11 @@
-# CSEMail
+# Emmisor
 
-CSEMail is an email marketing platform with a React/TypeScript frontend and Node.js/Express backend, using Supabase for authentication and database management.
+Emmisor is an email marketing platform with a React/TypeScript frontend and Node.js/Express backend, using Supabase for authentication and database management.
 
 ## Project Structure
 
 ```
-CSEMail/
+Emmisor/
 ├── backend/
 │   └── server/
 │       ├── index.js
@@ -43,8 +43,8 @@ CSEMail/
 
 1. Clone the repository:
    ```
-   git clone https://github.com/saintdannyyy/csemail.git
-   cd csemail
+   git clone https://github.com/saintdannyyy/emmisor.git
+   cd emmisor
    ```
 2. Install dependencies for both frontend and backend:
    ```

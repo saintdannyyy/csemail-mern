@@ -71,7 +71,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`CSEMail server running on port ${PORT}`);
+  console.log(`Emmisor server running on port ${PORT}`);
 });
 
 module.exports = app;
