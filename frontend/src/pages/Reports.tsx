@@ -54,10 +54,12 @@ export const Reports: React.FC = () => {
   const [campaigns, setCampaigns] = useState<CampaignReport[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState("30");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchReportsData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const apiClient = (await import("../utils/apiClient")).apiClient;
         // Fetch dashboard stats
@@ -72,6 +74,7 @@ export const Reports: React.FC = () => {
         setCampaigns(campaignsResponse.campaigns || campaignsResponse || []);
       } catch (error) {
         console.error("Failed to fetch reports data:", error);
+        setError(error instanceof Error ? error.message : "Failed to fetch reports data");
       } finally {
         setLoading(false);
       }
@@ -108,6 +111,22 @@ export const Reports: React.FC = () => {
             ))}
           </div>
           <div className="h-96 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="text-center py-8">
+          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
