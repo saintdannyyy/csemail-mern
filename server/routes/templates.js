@@ -3,10 +3,10 @@ const Template = require("../models/Template");
 const Campaign = require("../models/Campaign");
 const AuditLog = require("../models/AuditLog");
 const { authenticateToken, requireRole } = require("../middleware/auth");
-const { 
-  seedTemplates, 
-  getTemplatesByCategory, 
-  getAllPredefinedTemplates 
+const {
+  seedTemplates,
+  getTemplatesByCategory,
+  getAllPredefinedTemplates,
 } = require("../services/templateSeeder");
 
 const router = express.Router();
@@ -63,31 +63,27 @@ router.post(
 );
 
 // Get predefined template library
-router.get(
-  "/library",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const { category } = req.query;
-      
-      let result;
-      if (category) {
-        result = await getTemplatesByCategory(category);
-      } else {
-        result = await getAllPredefinedTemplates();
-      }
-      
-      if (result.success) {
-        res.json(result.templates);
-      } else {
-        res.status(500).json({ error: result.error });
-      }
-    } catch (error) {
-      console.error("Get template library error:", error);
-      res.status(500).json({ error: "Failed to fetch template library" });
+router.get("/library", authenticateToken, async (req, res) => {
+  try {
+    const { category } = req.query;
+
+    let result;
+    if (category) {
+      result = await getTemplatesByCategory(category);
+    } else {
+      result = await getAllPredefinedTemplates();
     }
+
+    if (result.success) {
+      res.json(result.templates);
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error("Get template library error:", error);
+    res.status(500).json({ error: "Failed to fetch template library" });
   }
-);
+});
 
 // Clone a predefined template to user's templates
 router.post(
@@ -98,13 +94,13 @@ router.post(
     try {
       const { templateId } = req.params;
       const { name, customizations } = req.body;
-      
+
       // Find the predefined template
       const sourceTemplate = await Template.findById(templateId);
       if (!sourceTemplate || !sourceTemplate.isPredefined) {
         return res.status(404).json({ error: "Predefined template not found" });
       }
-      
+
       // Create a new template based on the predefined one
       const clonedTemplate = new Template({
         name: name || `${sourceTemplate.name} (Copy)`,
@@ -121,25 +117,25 @@ router.post(
         metadata: {
           ...sourceTemplate.metadata,
           clonedAt: new Date(),
-          customizations: customizations || {}
-        }
+          customizations: customizations || {},
+        },
       });
-      
+
       await clonedTemplate.save();
-      
+
       // Log audit event
       await AuditLog.create({
         userId: req.user.userId,
         action: "template_cloned",
         targetType: "template",
         targetId: clonedTemplate._id,
-        details: { 
+        details: {
           sourceTemplateId: sourceTemplate._id,
           sourceName: sourceTemplate.name,
-          newName: clonedTemplate.name
+          newName: clonedTemplate.name,
         },
       });
-      
+
       res.status(201).json(clonedTemplate);
     } catch (error) {
       console.error("Clone template error:", error);
@@ -283,12 +279,10 @@ router.delete(
             const campaigns = await Campaign.find({ template: id }).limit(1);
 
             if (campaigns && campaigns.length > 0) {
-              return res
-                .status(400)
-                .json({
-                  error:
-                    "Template is being used by campaigns and cannot be deleted",
-                });
+              return res.status(400).json({
+                error:
+                  "Template is being used by campaigns and cannot be deleted",
+              });
             }
 
             const template = await Template.findByIdAndDelete(id);
