@@ -150,6 +150,11 @@ class ApiClient {
   async getCampaignStats(): Promise<any> {
     return this.get('/api/reports/stats');
   }
+
+  // Activity methods
+  async getRecentActivity(): Promise<any> {
+    return this.get('/api/activity/recent');
+  }
 }
 
 // Create and export a singleton instance
