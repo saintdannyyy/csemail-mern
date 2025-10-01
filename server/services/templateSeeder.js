@@ -1,4 +1,4 @@
-const Template = require('../models/Template');
+const Template = require("../models/Template");
 
 const predefinedTemplates = [
   {
@@ -45,15 +45,39 @@ const predefinedTemplates = [
 </div>
     `,
     variables: [
-      { name: "company_name", type: "text", defaultValue: "Your Company", required: true, description: "Name of your company" },
-      { name: "first_name", type: "text", defaultValue: "User", required: true, description: "User's first name" },
-      { name: "dashboard_url", type: "url", defaultValue: "/dashboard", required: true, description: "Link to user dashboard" },
-      { name: "support_email", type: "email", defaultValue: "support@company.com", required: true, description: "Support email address" }
+      {
+        name: "company_name",
+        type: "text",
+        defaultValue: "Your Company",
+        required: true,
+        description: "Name of your company",
+      },
+      {
+        name: "first_name",
+        type: "text",
+        defaultValue: "User",
+        required: true,
+        description: "User's first name",
+      },
+      {
+        name: "dashboard_url",
+        type: "url",
+        defaultValue: "/dashboard",
+        required: true,
+        description: "Link to user dashboard",
+      },
+      {
+        name: "support_email",
+        type: "email",
+        defaultValue: "support@company.com",
+        required: true,
+        description: "Support email address",
+      },
     ],
     isTemplate: true,
-    isPredefined: true
+    isPredefined: true,
   },
-  
+
   {
     name: "Newsletter Template",
     category: "newsletter",
@@ -106,25 +130,109 @@ const predefinedTemplates = [
 </div>
     `,
     variables: [
-      { name: "newsletter_title", type: "text", defaultValue: "Monthly Newsletter", required: true, description: "Title of the newsletter" },
-      { name: "month", type: "text", defaultValue: "January", required: true, description: "Current month" },
-      { name: "year", type: "text", defaultValue: "2024", required: true, description: "Current year" },
-      { name: "main_headline", type: "text", defaultValue: "This Month's Highlights", required: true, description: "Main article headline" },
-      { name: "main_content", type: "textarea", defaultValue: "Lorem ipsum dolor sit amet...", required: true, description: "Main article content" },
-      { name: "main_article_url", type: "url", defaultValue: "/blog/article", required: false, description: "Link to full article" },
-      { name: "update_1", type: "text", defaultValue: "First update", required: false, description: "First quick update" },
-      { name: "update_2", type: "text", defaultValue: "Second update", required: false, description: "Second quick update" },
-      { name: "update_3", type: "text", defaultValue: "Third update", required: false, description: "Third quick update" },
-      { name: "featured_content", type: "textarea", defaultValue: "Featured content description", required: false, description: "Featured section content" },
-      { name: "company_name", type: "text", defaultValue: "Your Company", required: true, description: "Company name" },
-      { name: "website_url", type: "url", defaultValue: "https://yourwebsite.com", required: true, description: "Company website URL" },
-      { name: "unsubscribe_url", type: "url", defaultValue: "/unsubscribe", required: true, description: "Unsubscribe link" },
-      { name: "preferences_url", type: "url", defaultValue: "/preferences", required: true, description: "Email preferences link" }
+      {
+        name: "newsletter_title",
+        type: "text",
+        defaultValue: "Monthly Newsletter",
+        required: true,
+        description: "Title of the newsletter",
+      },
+      {
+        name: "month",
+        type: "text",
+        defaultValue: "January",
+        required: true,
+        description: "Current month",
+      },
+      {
+        name: "year",
+        type: "text",
+        defaultValue: "2024",
+        required: true,
+        description: "Current year",
+      },
+      {
+        name: "main_headline",
+        type: "text",
+        defaultValue: "This Month's Highlights",
+        required: true,
+        description: "Main article headline",
+      },
+      {
+        name: "main_content",
+        type: "textarea",
+        defaultValue: "Lorem ipsum dolor sit amet...",
+        required: true,
+        description: "Main article content",
+      },
+      {
+        name: "main_article_url",
+        type: "url",
+        defaultValue: "/blog/article",
+        required: false,
+        description: "Link to full article",
+      },
+      {
+        name: "update_1",
+        type: "text",
+        defaultValue: "First update",
+        required: false,
+        description: "First quick update",
+      },
+      {
+        name: "update_2",
+        type: "text",
+        defaultValue: "Second update",
+        required: false,
+        description: "Second quick update",
+      },
+      {
+        name: "update_3",
+        type: "text",
+        defaultValue: "Third update",
+        required: false,
+        description: "Third quick update",
+      },
+      {
+        name: "featured_content",
+        type: "textarea",
+        defaultValue: "Featured content description",
+        required: false,
+        description: "Featured section content",
+      },
+      {
+        name: "company_name",
+        type: "text",
+        defaultValue: "Your Company",
+        required: true,
+        description: "Company name",
+      },
+      {
+        name: "website_url",
+        type: "url",
+        defaultValue: "https://yourwebsite.com",
+        required: true,
+        description: "Company website URL",
+      },
+      {
+        name: "unsubscribe_url",
+        type: "url",
+        defaultValue: "/unsubscribe",
+        required: true,
+        description: "Unsubscribe link",
+      },
+      {
+        name: "preferences_url",
+        type: "url",
+        defaultValue: "/preferences",
+        required: true,
+        description: "Email preferences link",
+      },
     ],
     isTemplate: true,
-    isPredefined: true
+    isPredefined: true,
   },
-  
+
   {
     name: "Promotional Sale",
     category: "promotional",
@@ -174,22 +282,90 @@ const predefinedTemplates = [
 </div>
     `,
     variables: [
-      { name: "discount_percentage", type: "number", defaultValue: "25", required: true, description: "Discount percentage" },
-      { name: "sale_title", type: "text", defaultValue: "Flash Sale", required: true, description: "Sale event title" },
-      { name: "main_headline", type: "text", defaultValue: "Don't Miss Out!", required: true, description: "Main promotional headline" },
-      { name: "sale_description", type: "textarea", defaultValue: "Limited time offer on all products. Save big on your favorite items!", required: true, description: "Sale description" },
-      { name: "promo_code", type: "text", defaultValue: "SAVE25", required: true, description: "Promotional discount code" },
-      { name: "shop_url", type: "url", defaultValue: "/shop", required: true, description: "Link to shop/store" },
-      { name: "expiry_date", type: "text", defaultValue: "December 31st", required: true, description: "Sale expiry date" },
-      { name: "terms_conditions", type: "text", defaultValue: "Terms and conditions apply. Cannot be combined with other offers.", required: false, description: "Terms and conditions text" },
-      { name: "company_name", type: "text", defaultValue: "Your Company", required: true, description: "Company name" },
-      { name: "year", type: "text", defaultValue: "2024", required: true, description: "Current year" },
-      { name: "unsubscribe_url", type: "url", defaultValue: "/unsubscribe", required: true, description: "Unsubscribe link" }
+      {
+        name: "discount_percentage",
+        type: "number",
+        defaultValue: "25",
+        required: true,
+        description: "Discount percentage",
+      },
+      {
+        name: "sale_title",
+        type: "text",
+        defaultValue: "Flash Sale",
+        required: true,
+        description: "Sale event title",
+      },
+      {
+        name: "main_headline",
+        type: "text",
+        defaultValue: "Don't Miss Out!",
+        required: true,
+        description: "Main promotional headline",
+      },
+      {
+        name: "sale_description",
+        type: "textarea",
+        defaultValue:
+          "Limited time offer on all products. Save big on your favorite items!",
+        required: true,
+        description: "Sale description",
+      },
+      {
+        name: "promo_code",
+        type: "text",
+        defaultValue: "SAVE25",
+        required: true,
+        description: "Promotional discount code",
+      },
+      {
+        name: "shop_url",
+        type: "url",
+        defaultValue: "/shop",
+        required: true,
+        description: "Link to shop/store",
+      },
+      {
+        name: "expiry_date",
+        type: "text",
+        defaultValue: "December 31st",
+        required: true,
+        description: "Sale expiry date",
+      },
+      {
+        name: "terms_conditions",
+        type: "text",
+        defaultValue:
+          "Terms and conditions apply. Cannot be combined with other offers.",
+        required: false,
+        description: "Terms and conditions text",
+      },
+      {
+        name: "company_name",
+        type: "text",
+        defaultValue: "Your Company",
+        required: true,
+        description: "Company name",
+      },
+      {
+        name: "year",
+        type: "text",
+        defaultValue: "2024",
+        required: true,
+        description: "Current year",
+      },
+      {
+        name: "unsubscribe_url",
+        type: "url",
+        defaultValue: "/unsubscribe",
+        required: true,
+        description: "Unsubscribe link",
+      },
     ],
     isTemplate: true,
-    isPredefined: true
+    isPredefined: true,
   },
-  
+
   {
     name: "Order Confirmation",
     category: "transactional",
@@ -225,7 +401,9 @@ const predefinedTemplates = [
         </tr>
         <tr>
           <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Total Amount:</td>
-          <td style="padding: 8px 0; color: #1f2937; text-align: right; font-weight: bold;">${{total_amount}}</td>
+          <td style="padding: 8px 0; color: #1f2937; text-align: right; font-weight: bold;">${{
+            total_amount,
+          }}</td>
         </tr>
         <tr>
           <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Payment Method:</td>
@@ -262,74 +440,145 @@ const predefinedTemplates = [
 </div>
     `,
     variables: [
-      { name: "customer_name", type: "text", defaultValue: "Customer", required: true, description: "Customer's name" },
-      { name: "order_number", type: "text", defaultValue: "ORD123456", required: true, description: "Order number" },
-      { name: "order_date", type: "text", defaultValue: "January 15, 2024", required: true, description: "Order date" },
-      { name: "total_amount", type: "text", defaultValue: "99.99", required: true, description: "Total order amount" },
-      { name: "payment_method", type: "text", defaultValue: "Credit Card", required: true, description: "Payment method used" },
-      { name: "shipping_address", type: "textarea", defaultValue: "123 Main St\nCity, State 12345", required: true, description: "Shipping address" },
-      { name: "estimated_delivery", type: "text", defaultValue: "3-5 business days", required: true, description: "Estimated delivery time" },
-      { name: "tracking_url", type: "url", defaultValue: "/track", required: true, description: "Order tracking URL" },
-      { name: "account_url", type: "url", defaultValue: "/account", required: true, description: "Customer account URL" },
-      { name: "support_email", type: "email", defaultValue: "support@company.com", required: true, description: "Support email address" }
+      {
+        name: "customer_name",
+        type: "text",
+        defaultValue: "Customer",
+        required: true,
+        description: "Customer's name",
+      },
+      {
+        name: "order_number",
+        type: "text",
+        defaultValue: "ORD123456",
+        required: true,
+        description: "Order number",
+      },
+      {
+        name: "order_date",
+        type: "text",
+        defaultValue: "January 15, 2024",
+        required: true,
+        description: "Order date",
+      },
+      {
+        name: "total_amount",
+        type: "text",
+        defaultValue: "99.99",
+        required: true,
+        description: "Total order amount",
+      },
+      {
+        name: "payment_method",
+        type: "text",
+        defaultValue: "Credit Card",
+        required: true,
+        description: "Payment method used",
+      },
+      {
+        name: "shipping_address",
+        type: "textarea",
+        defaultValue: "123 Main St\nCity, State 12345",
+        required: true,
+        description: "Shipping address",
+      },
+      {
+        name: "estimated_delivery",
+        type: "text",
+        defaultValue: "3-5 business days",
+        required: true,
+        description: "Estimated delivery time",
+      },
+      {
+        name: "tracking_url",
+        type: "url",
+        defaultValue: "/track",
+        required: true,
+        description: "Order tracking URL",
+      },
+      {
+        name: "account_url",
+        type: "url",
+        defaultValue: "/account",
+        required: true,
+        description: "Customer account URL",
+      },
+      {
+        name: "support_email",
+        type: "email",
+        defaultValue: "support@company.com",
+        required: true,
+        description: "Support email address",
+      },
     ],
     isTemplate: true,
-    isPredefined: true
-  }
+    isPredefined: true,
+  },
 ];
 
 const seedTemplates = async () => {
   try {
-    console.log('🌱 Starting template seeding...');
-    
+    console.log("🌱 Starting template seeding...");
+
     // Check if templates already exist
     const existingCount = await Template.countDocuments({ isPredefined: true });
     if (existingCount > 0) {
-      console.log(`ℹ️  Found ${existingCount} existing predefined templates. Skipping seed.`);
-      return { success: true, message: `${existingCount} predefined templates already exist` };
+      console.log(
+        `ℹ️  Found ${existingCount} existing predefined templates. Skipping seed.`
+      );
+      return {
+        success: true,
+        message: `${existingCount} predefined templates already exist`,
+      };
     }
-    
+
     // Create templates
     const createdTemplates = [];
     for (const templateData of predefinedTemplates) {
       try {
         // Add default metadata
         templateData.metadata = {
-          createdBy: 'system',
-          industry: 'general',
-          difficulty: 'beginner',
-          estimatedTime: '5 minutes'
+          createdBy: "system",
+          industry: "general",
+          difficulty: "beginner",
+          estimatedTime: "5 minutes",
         };
-        
+
         const template = new Template(templateData);
         const savedTemplate = await template.save();
         createdTemplates.push(savedTemplate);
         console.log(`✅ Created template: ${savedTemplate.name}`);
       } catch (error) {
-        console.error(`❌ Error creating template ${templateData.name}:`, error.message);
+        console.error(
+          `❌ Error creating template ${templateData.name}:`,
+          error.message
+        );
       }
     }
-    
+
     console.log(`🎉 Successfully seeded ${createdTemplates.length} templates!`);
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: `Successfully created ${createdTemplates.length} predefined templates`,
-      templates: createdTemplates.map(t => ({ id: t._id, name: t.name, category: t.category }))
+      templates: createdTemplates.map((t) => ({
+        id: t._id,
+        name: t.name,
+        category: t.category,
+      })),
     };
-    
   } catch (error) {
-    console.error('❌ Template seeding failed:', error);
+    console.error("❌ Template seeding failed:", error);
     return { success: false, error: error.message };
   }
 };
 
 const getTemplatesByCategory = async (category) => {
   try {
-    const templates = await Template.find({ 
+    const templates = await Template.find({
       category,
-      isPredefined: true 
-    }).select('name category tags subject variables thumbnail');
-    
+      isPredefined: true,
+    }).select("name category tags subject variables thumbnail");
+
     return { success: true, templates };
   } catch (error) {
     return { success: false, error: error.message };
@@ -338,20 +587,20 @@ const getTemplatesByCategory = async (category) => {
 
 const getAllPredefinedTemplates = async () => {
   try {
-    const templates = await Template.find({ 
-      isPredefined: true 
-    }).select('name category tags subject variables thumbnail metadata');
-    
+    const templates = await Template.find({
+      isPredefined: true,
+    }).select("name category tags subject variables thumbnail metadata");
+
     // Group by category
     const groupedTemplates = templates.reduce((acc, template) => {
-      const category = template.category || 'uncategorized';
+      const category = template.category || "uncategorized";
       if (!acc[category]) {
         acc[category] = [];
       }
       acc[category].push(template);
       return acc;
     }, {});
-    
+
     return { success: true, templates: groupedTemplates };
   } catch (error) {
     return { success: false, error: error.message };
@@ -362,5 +611,5 @@ module.exports = {
   seedTemplates,
   getTemplatesByCategory,
   getAllPredefinedTemplates,
-  predefinedTemplates
+  predefinedTemplates,
 };
