@@ -53,10 +53,11 @@ export const UserManagement: React.FC = () => {
     try {
       const response = await apiClient.get<any>("/api/users");
       // Map backend users to frontend format with guaranteed id field
-      const users = response?.users?.map((user: any) => ({
-        ...user,
-        id: user._id || user.id || `temp-${Date.now()}-${Math.random()}`, // Ensure we always have an id
-      })) || [];
+      const users =
+        response?.users?.map((user: any) => ({
+          ...user,
+          id: user._id || user.id || `temp-${Date.now()}-${Math.random()}`, // Ensure we always have an id
+        })) || [];
       setUsers(users);
     } catch (err: any) {
       setError(err?.message || "Failed to fetch users");
@@ -459,7 +460,9 @@ export const UserManagement: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         {user.status === "pending" && (
                           <button
-                            onClick={() => user.id && updateUserStatus(user.id, "active")}
+                            onClick={() =>
+                              user.id && updateUserStatus(user.id, "active")
+                            }
                             disabled={!user.id}
                             className="text-green-600 hover:text-green-900 disabled:opacity-50"
                             title="Activate User"
