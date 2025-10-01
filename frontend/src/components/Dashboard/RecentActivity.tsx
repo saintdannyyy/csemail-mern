@@ -12,6 +12,11 @@ interface ActivityItem {
   description: string;
   timestamp: string;
   user: string;
+  userId?: {
+    _id?: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }
 
 const ActivityIcon: React.FC<{ type: string }> = ({ type }) => {
@@ -40,11 +45,25 @@ export const RecentActivity: React.FC<{ activity?: ActivityItem[] }> = ({
       setLoading(true);
       setError(null);
       try {
-        // Replace with your actual backend endpoint for recent activity
+        // Use the apiClient method for recent activity
         const response = await (
           await import("../../utils/apiClient")
-        ).apiClient.get<any>("/api/activity/recent");
-        setActivities(response.activities || []);
+        ).apiClient.getRecentActivity();
+        const activities = response.activities || response.recentActivity || [];
+
+        // Map activities to handle user names properly
+        const mappedActivities = activities.map((activity: any) => ({
+          ...activity,
+          id: activity._id || activity.id,
+          user:
+            activity.userId &&
+            activity.userId.firstName &&
+            activity.userId.lastName
+              ? `${activity.userId.firstName} ${activity.userId.lastName}`
+              : activity.user || "Unknown User",
+        }));
+
+        setActivities(mappedActivities);
       } catch (err: any) {
         setError(err?.message || "Failed to load activity");
         setActivities([]);

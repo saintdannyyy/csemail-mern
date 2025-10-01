@@ -52,7 +52,13 @@ export const UserManagement: React.FC = () => {
     setError(null);
     try {
       const response = await apiClient.get<any>("/api/users");
-      setUsers(response && response.users ? response.users : []);
+      // Map backend users to frontend format
+      const users =
+        response?.users?.map((user: any) => ({
+          ...user,
+          id: user._id || user.id, // Ensure we have an id field for frontend compatibility
+        })) || [];
+      setUsers(users);
     } catch (err: any) {
       setError(err?.message || "Failed to fetch users");
       setUsers([]);
