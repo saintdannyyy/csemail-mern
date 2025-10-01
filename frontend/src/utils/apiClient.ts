@@ -1,4 +1,4 @@
-// API client for CSEMail backend communication
+// API client for Emmisor backend communication
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 class ApiClient {
@@ -138,17 +138,43 @@ class ApiClient {
     return this.get('/api/templates');
   }
 
+  async getTemplate(id: string): Promise<any> {
+    return this.get(`/api/templates/${id}`);
+  }
+
   async createTemplate(template: any): Promise<any> {
     return this.post('/api/templates', template);
   }
 
+  async updateTemplate(id: string, template: any): Promise<any> {
+    return this.put(`/api/templates/${id}`, template);
+  }
+
+  async deleteTemplate(id: string): Promise<any> {
+    return this.delete(`/api/templates/${id}`);
+  }
+
+  async getTemplateLibrary(category?: string): Promise<any> {
+    const endpoint = category ? `/api/templates/library?category=${category}` : '/api/templates/library';
+    return this.get(endpoint);
+  }
+
+  async seedTemplates(force?: boolean): Promise<any> {
+    return this.post('/api/templates/seed', { force });
+  }
+
   // Reports methods
   async getReports(): Promise<any> {
-    return this.get('/api/reports');
+    return this.get('/api/reports/dashboard');
   }
 
   async getCampaignStats(): Promise<any> {
-    return this.get('/api/reports/stats');
+    return this.get('/api/reports/campaigns');
+  }
+
+  // Activity methods
+  async getRecentActivity(): Promise<any> {
+    return this.get('/api/activity/recent');
   }
 }
 

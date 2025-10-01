@@ -1,5 +1,6 @@
 export interface User {
-  id: string;
+  _id?: string;
+  id: string; // Required - ensured by frontend mapping
   email: string;
   firstName: string;
   lastName: string;
@@ -55,14 +56,43 @@ export interface Campaign {
   updatedAt: string;
 }
 
+export interface TemplateVariable {
+  name: string;
+  type: 'text' | 'email' | 'url' | 'date' | 'number';
+  defaultValue: string;
+  required: boolean;
+  description?: string;
+}
+
 export interface EmailTemplate {
   id: string;
   name: string;
+  subject: string;
   description?: string;
   htmlContent: string;
+  category: 'welcome' | 'newsletter' | 'promotional' | 'transactional' | 'announcement' | 'reminder' | 'survey' | 'other';
+  tags: string[];
+  type: 'html' | 'text';
+  variables: TemplateVariable[];
   thumbnailUrl?: string;
+  previewImages?: {
+    desktop?: string;
+    mobile?: string;
+  };
   isDefault: boolean;
+  isPublic: boolean;
+  version: number;
+  parentTemplate?: string;
+  usageCount: number;
+  lastUsed?: string;
+  metadata?: {
+    estimatedSize?: number;
+    wordCount?: number;
+    imageCount?: number;
+    linkCount?: number;
+  };
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface EmailJob {

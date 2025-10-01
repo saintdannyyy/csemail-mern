@@ -22,6 +22,7 @@ const queueRoutes = require("./routes/queue");
 const userRoutes = require("./routes/users");
 const settingsRoutes = require("./routes/settings");
 const auditRoutes = require("./routes/audit");
+const activityRoutes = require("./routes/activity");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -47,6 +48,7 @@ app.use("/api/queue", queueRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/audit", auditRoutes);
+app.use("/api/activity", activityRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -71,7 +73,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`CSEMail server running on port ${PORT}`);
+  console.log(`Emmisor server running on port ${PORT}`);
 });
 
 module.exports = app;

@@ -52,7 +52,13 @@ export const UserManagement: React.FC = () => {
     setError(null);
     try {
       const response = await apiClient.get<any>("/api/users");
-      setUsers(response && response.users ? response.users : []);
+      // Map backend users to frontend format with guaranteed id field
+      const users =
+        response?.users?.map((user: any) => ({
+          ...user,
+          id: user._id || user.id || `temp-${Date.now()}-${Math.random()}`, // Ensure we always have an id
+        })) || [];
+      setUsers(users);
     } catch (err: any) {
       setError(err?.message || "Failed to fetch users");
       setUsers([]);
@@ -75,15 +81,21 @@ export const UserManagement: React.FC = () => {
 
   const createUser = async () => {
     try {
-      // Simulate API call
-      const user: User = {
-        id: Date.now().toString(),
+      const response = await apiClient.post<any>("/api/users", {
         email: newUser.email,
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         role: newUser.role,
-        status: "pending",
-        createdAt: new Date().toISOString(),
+        sendInvite: true,
+      });
+
+      // Map the response to frontend format
+      const user: User = {
+        ...response.user,
+        id:
+          response.user._id ||
+          response.user.id ||
+          `temp-${Date.now()}-${Math.random()}`,
       };
 
       setUsers((prev) => [user, ...prev]);
@@ -99,6 +111,7 @@ export const UserManagement: React.FC = () => {
 
   const updateUserStatus = async (userId: string, status: User["status"]) => {
     try {
+      await apiClient.put<any>(`/api/users/${userId}`, { status });
       setUsers((prev) =>
         prev.map((user) => (user.id === userId ? { ...user, status } : user))
       );
@@ -110,11 +123,19 @@ export const UserManagement: React.FC = () => {
 
   const resetUserPassword = async (userId: string) => {
     try {
-      // Simulate API call
-      console.log("Resetting password for user:", userId);
-      alert("Password reset email sent to user");
+      const response = await apiClient.post<any>(
+        `/api/users/${userId}/reset-password`
+      );
+      if (response.tempPassword) {
+        alert(
+          `Password reset successfully. Temporary password: ${response.tempPassword}`
+        );
+      } else {
+        alert("Password reset email sent to user");
+      }
     } catch (error) {
       console.error("Failed to reset password:", error);
+      alert("Failed to reset password");
     }
   };
 
@@ -122,6 +143,7 @@ export const UserManagement: React.FC = () => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
+      await apiClient.delete<any>(`/api/users/${userId}`);
       setUsers((prev) => prev.filter((user) => user.id !== userId));
       await fetchUserStats();
     } catch (error) {
@@ -454,23 +476,28 @@ export const UserManagement: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         {user.status === "pending" && (
                           <button
-                            onClick={() => updateUserStatus(user.id, "active")}
-                            className="text-green-600 hover:text-green-900"
+                            onClick={() =>
+                              user.id && updateUserStatus(user.id, "active")
+                            }
+                            disabled={!user.id}
+                            className="text-green-600 hover:text-green-900 disabled:opacity-50"
                             title="Activate User"
                           >
                             <CheckCircle className="h-4 w-4" />
                           </button>
                         )}
                         <button
-                          onClick={() => resetUserPassword(user.id)}
-                          className="text-blue-600 hover:text-blue-900"
+                          onClick={() => user.id && resetUserPassword(user.id)}
+                          disabled={!user.id}
+                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
                           title="Reset Password"
                         >
                           <Key className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => deleteUser(user.id)}
-                          className="text-red-600 hover:text-red-900"
+                          onClick={() => user.id && deleteUser(user.id)}
+                          disabled={!user.id}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
                           title="Delete User"
                         >
                           <Trash2 className="h-4 w-4" />

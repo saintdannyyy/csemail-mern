@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           console.error("Failed to validate stored token:", error);
           // Clear invalid token
           apiClient.clearToken();
-          localStorage.removeItem("csemail-user");
+          localStorage.removeItem("emmisor-user");
         }
       }
       setIsLoading(false);
@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const response = await apiClient.login(email, password);
       console.log("Login response:", response);
       setUser(response.user);
-      localStorage.setItem("csemail-user", JSON.stringify(response.user));
+      localStorage.setItem("emmisor-user", JSON.stringify(response.user));
     } catch (error) {
       console.error("Login failed:", error);
       throw new Error("Invalid email or password");
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = () => {
     setUser(null);
     apiClient.logout();
-    localStorage.removeItem("csemail-user");
+    localStorage.removeItem("emmisor-user");
   };
 
   return (
