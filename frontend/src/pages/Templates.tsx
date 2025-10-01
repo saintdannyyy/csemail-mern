@@ -24,24 +24,40 @@ export const Templates: React.FC = () => {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState<boolean>(false);
+
+  const fetchTemplates = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await (
+        await import("../utils/apiClient")
+      ).apiClient.getTemplates();
+      setTemplates(response.templates || response || []);
+    } catch (err: any) {
+      setError(err?.message || "Failed to fetch templates");
+      setTemplates([]);
+      console.error("Failed to fetch templates:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const seedTemplates = async () => {
+    setSeeding(true);
+    try {
+      await (await import("../utils/apiClient")).apiClient.seedTemplates();
+      // Refresh templates after seeding
+      await fetchTemplates();
+    } catch (err: any) {
+      setError(err?.message || "Failed to seed templates");
+      console.error("Failed to seed templates:", err);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTemplates = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await (
-          await import("../utils/apiClient")
-        ).apiClient.getTemplates();
-        setTemplates(response.templates || response || []);
-      } catch (err: any) {
-        setError(err?.message || "Failed to fetch templates");
-        setTemplates([]);
-        console.error("Failed to fetch templates:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchTemplates();
   }, []);
 
@@ -179,10 +195,40 @@ export const Templates: React.FC = () => {
               </button>
             </div>
           ) : filteredTemplates.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              {searchTerm
-                ? `No templates found matching "${searchTerm}"`
-                : "No templates found. Create your first template to get started."}
+            <div className="text-center py-12">
+              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No templates found
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {searchTerm
+                  ? `No templates found matching "${searchTerm}"`
+                  : "No templates found in the library."}
+              </p>
+              {!searchTerm && (
+                <div className="space-y-3">
+                  <button
+                    onClick={seedTemplates}
+                    disabled={seeding}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {seeding ? (
+                      <>
+                        <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Seeding Templates...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Seed Templates
+                      </>
+                    )}
+                  </button>
+                  <p className="text-sm text-gray-500">
+                    Click "Seed Templates" to load predefined templates.
+                  </p>
+                </div>
+              )}
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
