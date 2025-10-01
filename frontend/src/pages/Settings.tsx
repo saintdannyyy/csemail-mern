@@ -120,10 +120,18 @@ export const Settings: React.FC = () => {
   const saveSmtpConfig = async () => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await (await import("../utils/apiClient")).apiClient.put("/api/settings/smtp", {
+        host: smtpConfig.host,
+        port: smtpConfig.port,
+        username: smtpConfig.username,
+        password: smtpConfig.password,
+        secure: smtpConfig.secure,
+        fromName: smtpConfig.fromName,
+        fromEmail: smtpConfig.fromEmail,
+      });
       addNotification("success", "SMTP configuration saved successfully");
     } catch (error) {
+      console.error("Failed to save SMTP config:", error);
       addNotification("error", "Failed to save SMTP configuration");
     } finally {
       setSaving(false);
@@ -138,13 +146,17 @@ export const Settings: React.FC = () => {
 
     setTestingSmtp(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      addNotification(
-        "success",
-        `Test email sent successfully to ${testEmail}`
-      );
+      const response = await (await import("../utils/apiClient")).apiClient.post("/api/settings/smtp/test", {
+        testEmail: testEmail,
+      });
+      
+      if (response.success) {
+        addNotification("success", `Test email sent successfully to ${testEmail}`);
+      } else {
+        addNotification("error", response.message || "SMTP connection test failed");
+      }
     } catch (error) {
+      console.error("SMTP test failed:", error);
       addNotification("error", "SMTP connection test failed");
     } finally {
       setTestingSmtp(false);
@@ -154,8 +166,9 @@ export const Settings: React.FC = () => {
   const saveSystemSettings = async (category: keyof SystemSettings) => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await (await import("../utils/apiClient")).apiClient.put("/api/settings", {
+        settings: systemSettings[category]
+      });
       addNotification(
         "success",
         `${
@@ -163,6 +176,7 @@ export const Settings: React.FC = () => {
         } settings saved successfully`
       );
     } catch (error) {
+      console.error(`Failed to save ${category} settings:`, error);
       addNotification("error", `Failed to save ${category} settings`);
     } finally {
       setSaving(false);
