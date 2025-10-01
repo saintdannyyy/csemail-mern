@@ -81,15 +81,18 @@ export const UserManagement: React.FC = () => {
 
   const createUser = async () => {
     try {
-      // Simulate API call
-      const user: User = {
-        id: Date.now().toString(),
+      const response = await apiClient.post<any>("/api/users", {
         email: newUser.email,
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         role: newUser.role,
-        status: "pending",
-        createdAt: new Date().toISOString(),
+        sendInvite: true
+      });
+
+      // Map the response to frontend format
+      const user: User = {
+        ...response.user,
+        id: response.user._id || response.user.id || `temp-${Date.now()}-${Math.random()}`,
       };
 
       setUsers((prev) => [user, ...prev]);
@@ -105,6 +108,7 @@ export const UserManagement: React.FC = () => {
 
   const updateUserStatus = async (userId: string, status: User["status"]) => {
     try {
+      await apiClient.put<any>(`/api/users/${userId}`, { status });
       setUsers((prev) =>
         prev.map((user) => (user.id === userId ? { ...user, status } : user))
       );
@@ -116,11 +120,15 @@ export const UserManagement: React.FC = () => {
 
   const resetUserPassword = async (userId: string) => {
     try {
-      // Simulate API call
-      console.log("Resetting password for user:", userId);
-      alert("Password reset email sent to user");
+      const response = await apiClient.post<any>(`/api/users/${userId}/reset-password`);
+      if (response.tempPassword) {
+        alert(`Password reset successfully. Temporary password: ${response.tempPassword}`);
+      } else {
+        alert("Password reset email sent to user");
+      }
     } catch (error) {
       console.error("Failed to reset password:", error);
+      alert("Failed to reset password");
     }
   };
 
@@ -128,6 +136,7 @@ export const UserManagement: React.FC = () => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
+      await apiClient.delete<any>(`/api/users/${userId}`);
       setUsers((prev) => prev.filter((user) => user.id !== userId));
       await fetchUserStats();
     } catch (error) {
