@@ -112,78 +112,11 @@ export const QueueMonitor: React.FC = () => {
     return () => clearInterval(interval);
   }, [selectedStatus]);
 
-  const fetchQueueData = async () => {
-    try {
-      // Simulate API calls - replace with actual API calls
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Mock data
-      setStats({
-        queued: 1247,
-        sending: 23,
-        sent: 45892,
-        failed: 156,
-        retrying: 8,
-        total: 47326,
-      });
-
-      setJobs([
-        {
-          id: "1",
-          email: "john.doe@example.com",
-          status: "queued",
-          attemptCount: 0,
-          createdAt: "2024-01-22T10:30:00Z",
-          campaigns: {
-            name: "Q4 Product Updates",
-            subject: "Exciting New Features Coming Your Way!",
-          },
-        },
-        {
-          id: "2",
-          email: "jane.smith@example.com",
-          status: "sending",
-          attemptCount: 1,
-          lastAttemptAt: "2024-01-22T10:35:00Z",
-          createdAt: "2024-01-22T10:30:00Z",
-          campaigns: {
-            name: "Weekly Newsletter #42",
-            subject: "This Week in Software Engineering",
-          },
-        },
-        {
-          id: "3",
-          email: "failed@example.com",
-          status: "failed",
-          attemptCount: 3,
-          lastAttemptAt: "2024-01-22T10:32:00Z",
-          errorMessage: "SMTP connection timeout",
-          createdAt: "2024-01-22T10:30:00Z",
-          campaigns: {
-            name: "Holiday Greetings 2024",
-            subject: "Season's Greetings from All of Us",
-          },
-        },
-      ]);
-
-      setProcessingRate(85);
-      setConfig({
-        isPaused: false,
-        rateLimitPerMinute: 100,
-        maxRetryAttempts: 3,
-      });
-    } catch (error) {
-      console.error("Failed to fetch queue data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const toggleQueueProcessing = async () => {
     try {
       const newPausedState = !config.isPaused;
       setConfig((prev) => ({ ...prev, isPaused: newPausedState }));
-      // Simulate API call
+      // TODO: Make actual API call to toggle queue
       console.log(newPausedState ? "Pausing queue..." : "Resuming queue...");
     } catch (error) {
       console.error("Failed to toggle queue processing:", error);
@@ -192,9 +125,22 @@ export const QueueMonitor: React.FC = () => {
 
   const retryFailedJobs = async () => {
     try {
-      // Simulate API call
+      // TODO: Make actual API call to retry failed jobs
       console.log("Retrying failed jobs...");
-      await fetchQueueData();
+      // Refresh data after retry
+      const apiClient = (await import("../utils/apiClient")).apiClient;
+      const statsResponse = (await apiClient.get("/api/queue/stats")) as {
+        stats?: QueueStats;
+        processingRate?: number;
+      };
+      setStats(statsResponse.stats ?? {
+        queued: 0,
+        sending: 0,
+        sent: 0,
+        failed: 0,
+        retrying: 0,
+        total: 0,
+      });
     } catch (error) {
       console.error("Failed to retry jobs:", error);
     }
