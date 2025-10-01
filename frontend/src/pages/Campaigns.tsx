@@ -20,10 +20,12 @@ export const Campaigns: React.FC = () => {
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCampaigns = async () => {
       setLoading(true);
+      setError(null);
       try {
         const response = await (
           await import("../utils/apiClient")
@@ -31,6 +33,7 @@ export const Campaigns: React.FC = () => {
         setCampaigns(response.campaigns || response || []);
       } catch (error) {
         console.error("Failed to fetch campaigns:", error);
+        setError(error instanceof Error ? error.message : "Failed to fetch campaigns");
       } finally {
         setLoading(false);
       }
@@ -164,13 +167,28 @@ export const Campaigns: React.FC = () => {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-400">
-                    Loading campaigns...
+                    <div className="animate-pulse">Loading campaigns...</div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8">
+                    <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>
+                    <button
+                      onClick={() => { setError(null); window.location.reload(); }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded"
+                    >
+                      Retry
+                    </button>
                   </td>
                 </tr>
               ) : filteredCampaigns.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-400">
-                    No campaigns found.
+                    {searchTerm || selectedFilter !== 'all' ? 
+                      "No campaigns found matching your filters." : 
+                      "No campaigns found. Create your first campaign to get started."
+                    }
                   </td>
                 </tr>
               ) : (
