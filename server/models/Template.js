@@ -58,6 +58,32 @@ const templateSchema = new mongoose.Schema(
       imageCount: { type: Number },
       linkCount: { type: Number },
     },
+    // Version control fields
+    versionHistory: [
+      {
+        version: { type: Number, required: true },
+        content: { type: String },
+        subject: { type: String },
+        htmlContent: { type: String },
+        description: { type: String },
+        variables: [variableSchema],
+        changes: { type: String },
+        createdAt: { type: Date, default: Date.now },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
+    // Sharing fields
+    shares: [
+      {
+        email: { type: String, required: true },
+        permission: { type: String, enum: ["view", "edit"], default: "view" },
+        sharedAt: { type: Date, default: Date.now },
+        sharedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        updatedAt: { type: Date },
+      },
+    ],
+    // Additional template fields for compatibility
+    htmlContent: { type: String }, // For backward compatibility
   },
   { timestamps: true }
 );

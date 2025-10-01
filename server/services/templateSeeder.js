@@ -401,9 +401,7 @@ const predefinedTemplates = [
         </tr>
         <tr>
           <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Total Amount:</td>
-          <td style="padding: 8px 0; color: #1f2937; text-align: right; font-weight: bold;">${{
-            total_amount,
-          }}</td>
+          <td style="padding: 8px 0; color: #1f2937; text-align: right; font-weight: bold;">{{total_amount}}</td>
         </tr>
         <tr>
           <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Payment Method:</td>
