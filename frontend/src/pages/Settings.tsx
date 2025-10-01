@@ -148,11 +148,11 @@ export const Settings: React.FC = () => {
 
     setTestingSmtp(true);
     try {
-      const response = await (
+      const response = (await (
         await import("../utils/apiClient")
       ).apiClient.post("/api/settings/smtp/test", {
         testEmail: testEmail,
-      });
+      })) as { success: boolean; message?: string };
 
       if (response.success) {
         addNotification(
