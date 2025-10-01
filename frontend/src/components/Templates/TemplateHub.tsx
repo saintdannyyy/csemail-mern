@@ -41,8 +41,8 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
       const response = await apiClient.getTemplates();
       setTemplates(response || []);
     } catch (err) {
-      console.error('Error fetching templates:', err);
-      setError('Failed to load templates');
+      console.error("Error fetching templates:", err);
+      setError("Failed to load templates");
       setTemplates([]);
     } finally {
       setLoading(false);
@@ -52,42 +52,47 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
   const handleCreateTemplate = async (templateData: any) => {
     try {
       const newTemplate = await apiClient.createTemplate(templateData);
-      setTemplates(prev => [...prev, newTemplate]);
+      setTemplates((prev) => [...prev, newTemplate]);
       if (onTemplateCreate) {
         onTemplateCreate(newTemplate);
       }
       // Switch back to library view to see the new template
       setActiveView("library");
     } catch (err) {
-      console.error('Error creating template:', err);
-      setError('Failed to create template');
+      console.error("Error creating template:", err);
+      setError("Failed to create template");
     }
   };
 
   const handleUpdateTemplate = async (templateId: string, updates: any) => {
     try {
-      const updatedTemplate = await apiClient.updateTemplate(templateId, updates);
-      setTemplates(prev => prev.map(t => t._id === templateId ? updatedTemplate : t));
+      const updatedTemplate = await apiClient.updateTemplate(
+        templateId,
+        updates
+      );
+      setTemplates((prev) =>
+        prev.map((t) => (t._id === templateId ? updatedTemplate : t))
+      );
       setSelectedTemplate(updatedTemplate);
       if (onTemplateUpdate) {
         onTemplateUpdate(templateId, updatedTemplate);
       }
     } catch (err) {
-      console.error('Error updating template:', err);
-      setError('Failed to update template');
+      console.error("Error updating template:", err);
+      setError("Failed to update template");
     }
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
     try {
       await apiClient.deleteTemplate(templateId);
-      setTemplates(prev => prev.filter(t => t._id !== templateId));
+      setTemplates((prev) => prev.filter((t) => t._id !== templateId));
       if (selectedTemplate?._id === templateId) {
         setSelectedTemplate(null);
       }
     } catch (err) {
-      console.error('Error deleting template:', err);
-      setError('Failed to delete template');
+      console.error("Error deleting template:", err);
+      setError("Failed to delete template");
     }
   };
 
@@ -151,7 +156,7 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
-          <button 
+          <button
             onClick={fetchTemplates}
             className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
           >
@@ -234,7 +239,10 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
                   </p>
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                     <span className="capitalize">{template.category}</span>
-                    <span>Modified {new Date(template.updatedAt).toLocaleDateString()}</span>
+                    <span>
+                      Modified{" "}
+                      {new Date(template.updatedAt).toLocaleDateString()}
+                    </span>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -255,7 +263,7 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
                     >
                       Test
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteTemplate(template._id)}
                       className="px-3 py-2 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
                     >
@@ -287,7 +295,9 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
             </p>
           </div>
           <AdvancedEmailEditor
-            content={selectedTemplate?.content || selectedTemplate?.htmlContent || ""}
+            content={
+              selectedTemplate?.content || selectedTemplate?.htmlContent || ""
+            }
             onChange={(newContent) => {
               // Update selectedTemplate content (local state only)
               if (selectedTemplate) {
@@ -308,7 +318,7 @@ export const TemplateHub: React.FC<TemplateHubProps> = ({
                   subject: "Template Subject",
                   content: selectedTemplate?.content || "",
                   category: "other",
-                  description: "New template description"
+                  description: "New template description",
                 };
                 handleCreateTemplate(templateData);
               }
