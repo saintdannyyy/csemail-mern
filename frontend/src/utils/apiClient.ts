@@ -138,12 +138,29 @@ class ApiClient {
     return this.get('/api/templates');
   }
 
+  async getTemplate(id: string): Promise<any> {
+    return this.get(`/api/templates/${id}`);
+  }
+
   async createTemplate(template: any): Promise<any> {
     return this.post('/api/templates', template);
   }
 
-  async seedTemplates(): Promise<any> {
-    return this.post('/api/templates/seed');
+  async updateTemplate(id: string, template: any): Promise<any> {
+    return this.put(`/api/templates/${id}`, template);
+  }
+
+  async deleteTemplate(id: string): Promise<any> {
+    return this.delete(`/api/templates/${id}`);
+  }
+
+  async getTemplateLibrary(category?: string): Promise<any> {
+    const endpoint = category ? `/api/templates/library?category=${category}` : '/api/templates/library';
+    return this.get(endpoint);
+  }
+
+  async seedTemplates(force?: boolean): Promise<any> {
+    return this.post('/api/templates/seed', { force });
   }
 
   // Reports methods
