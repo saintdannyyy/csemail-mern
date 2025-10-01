@@ -1,6 +1,6 @@
 export interface User {
   _id?: string;
-  id?: string;
+  id: string; // Required - ensured by frontend mapping
   email: string;
   firstName: string;
   lastName: string;

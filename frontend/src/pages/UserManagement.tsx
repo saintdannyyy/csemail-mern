@@ -52,12 +52,11 @@ export const UserManagement: React.FC = () => {
     setError(null);
     try {
       const response = await apiClient.get<any>("/api/users");
-      // Map backend users to frontend format
-      const users =
-        response?.users?.map((user: any) => ({
-          ...user,
-          id: user._id || user.id, // Ensure we have an id field for frontend compatibility
-        })) || [];
+      // Map backend users to frontend format with guaranteed id field
+      const users = response?.users?.map((user: any) => ({
+        ...user,
+        id: user._id || user.id || `temp-${Date.now()}-${Math.random()}`, // Ensure we always have an id
+      })) || [];
       setUsers(users);
     } catch (err: any) {
       setError(err?.message || "Failed to fetch users");
@@ -460,23 +459,26 @@ export const UserManagement: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         {user.status === "pending" && (
                           <button
-                            onClick={() => updateUserStatus(user.id, "active")}
-                            className="text-green-600 hover:text-green-900"
+                            onClick={() => user.id && updateUserStatus(user.id, "active")}
+                            disabled={!user.id}
+                            className="text-green-600 hover:text-green-900 disabled:opacity-50"
                             title="Activate User"
                           >
                             <CheckCircle className="h-4 w-4" />
                           </button>
                         )}
                         <button
-                          onClick={() => resetUserPassword(user.id)}
-                          className="text-blue-600 hover:text-blue-900"
+                          onClick={() => user.id && resetUserPassword(user.id)}
+                          disabled={!user.id}
+                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
                           title="Reset Password"
                         >
                           <Key className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => deleteUser(user.id)}
-                          className="text-red-600 hover:text-red-900"
+                          onClick={() => user.id && deleteUser(user.id)}
+                          disabled={!user.id}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
                           title="Delete User"
                         >
                           <Trash2 className="h-4 w-4" />
