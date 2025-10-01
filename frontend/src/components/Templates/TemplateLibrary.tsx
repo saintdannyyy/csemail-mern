@@ -76,7 +76,8 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
         `/api/templates/library${category ? `?category=${category}` : ""}`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            "Content-Type": "application/json",
           },
         }
       );
