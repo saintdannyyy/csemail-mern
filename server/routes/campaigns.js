@@ -17,51 +17,25 @@ router.get(
       const { page = 1, limit = 20, search, status } = req.query;
       const offset = (page - 1) * limit;
 
-      // Get all campaigns
-      router.get(
-        "/",
-        authenticateToken,
-        requireRole(["admin", "editor", "viewer"]),
-        async (req, res) => {
-          try {
-            const { page = 1, limit = 20, search, status } = req.query;
-            const offset = (page - 1) * limit;
+      let query = {};
 
-            let query = {};
+      if (search) {
+        query.$or = [
+          { name: new RegExp(search, "i") },
+          { subject: new RegExp(search, "i") },
+        ];
+      }
 
-            if (search) {
-              query.$or = [
-                { name: new RegExp(search, "i") },
-                { subject: new RegExp(search, "i") },
-              ];
-            }
+      if (status && status !== "all") {
+        query.status = status;
+      }
 
-            if (status && status !== "all") {
-              query.status = status;
-            }
+      const campaigns = await Campaign.find(query)
+        .skip(offset)
+        .limit(parseInt(limit))
+        .sort({ createdAt: -1 });
 
-            const campaigns = await Campaign.find(query)
-              .skip(offset)
-              .limit(parseInt(limit))
-              .sort({ createdAt: -1 });
-
-            const count = await Campaign.countDocuments(query);
-
-            res.json({
-              campaigns: campaigns || [],
-              pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total: count || 0,
-                pages: Math.ceil((count || 0) / limit),
-              },
-            });
-          } catch (error) {
-            console.error("Get campaigns error:", error);
-            res.status(500).json({ error: "Failed to fetch campaigns" });
-          }
-        }
-      );
+      const count = await Campaign.countDocuments(query);
 
       res.json({
         campaigns: campaigns || [],
