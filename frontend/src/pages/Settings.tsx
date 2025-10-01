@@ -120,7 +120,9 @@ export const Settings: React.FC = () => {
   const saveSmtpConfig = async () => {
     setSaving(true);
     try {
-      await (await import("../utils/apiClient")).apiClient.put("/api/settings/smtp", {
+      await (
+        await import("../utils/apiClient")
+      ).apiClient.put("/api/settings/smtp", {
         host: smtpConfig.host,
         port: smtpConfig.port,
         username: smtpConfig.username,
@@ -146,14 +148,22 @@ export const Settings: React.FC = () => {
 
     setTestingSmtp(true);
     try {
-      const response = await (await import("../utils/apiClient")).apiClient.post("/api/settings/smtp/test", {
+      const response = await (
+        await import("../utils/apiClient")
+      ).apiClient.post("/api/settings/smtp/test", {
         testEmail: testEmail,
       });
-      
+
       if (response.success) {
-        addNotification("success", `Test email sent successfully to ${testEmail}`);
+        addNotification(
+          "success",
+          `Test email sent successfully to ${testEmail}`
+        );
       } else {
-        addNotification("error", response.message || "SMTP connection test failed");
+        addNotification(
+          "error",
+          response.message || "SMTP connection test failed"
+        );
       }
     } catch (error) {
       console.error("SMTP test failed:", error);
@@ -166,8 +176,10 @@ export const Settings: React.FC = () => {
   const saveSystemSettings = async (category: keyof SystemSettings) => {
     setSaving(true);
     try {
-      await (await import("../utils/apiClient")).apiClient.put("/api/settings", {
-        settings: systemSettings[category]
+      await (
+        await import("../utils/apiClient")
+      ).apiClient.put("/api/settings", {
+        settings: systemSettings[category],
       });
       addNotification(
         "success",
