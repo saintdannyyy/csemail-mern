@@ -118,9 +118,14 @@ export const Templates: React.FC = () => {
         </div>
       ) : error ? (
         <div className="text-center py-8">
-          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>
+          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+            {error}
+          </div>
           <button
-            onClick={() => { setError(null); window.location.reload(); }}
+            onClick={() => {
+              setError(null);
+              window.location.reload();
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded"
           >
             Retry
@@ -128,70 +133,71 @@ export const Templates: React.FC = () => {
         </div>
       ) : filteredTemplates.length === 0 ? (
         <div className="text-center py-8 text-gray-400">
-          {searchTerm ? `No templates found matching "${searchTerm}"` : "No templates found. Create your first template to get started."}
+          {searchTerm
+            ? `No templates found matching "${searchTerm}"`
+            : "No templates found. Create your first template to get started."}
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTemplates.map((template) => (
-              <div
-                key={template.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-              >
-                <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                  {template.thumbnailUrl ? (
-                    <img
-                      src={template.thumbnailUrl}
-                      alt={template.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">📧</div>
-                        <div className="text-sm">No Preview</div>
-                      </div>
+            <div
+              key={template.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                {template.thumbnailUrl ? (
+                  <img
+                    src={template.thumbnailUrl}
+                    alt={template.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">📧</div>
+                      <div className="text-sm">No Preview</div>
                     </div>
-                  )}
-                  {template.isDefault && (
-                    <div className="absolute top-2 left-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Default
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {template.name}
-                  </h3>
-                  {template.description && (
-                    <p className="text-sm text-gray-600 mb-4">
-                      {template.description}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>
-                      Created{" "}
-                      {new Date(template.createdAt).toLocaleDateString()}
+                  </div>
+                )}
+                {template.isDefault && (
+                  <div className="absolute top-2 left-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Default
                     </span>
-                    <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900">
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {template.name}
+                </h3>
+                {template.description && (
+                  <p className="text-sm text-gray-600 mb-4">
+                    {template.description}
+                  </p>
+                )}
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>
+                    Created {new Date(template.createdAt).toLocaleDateString()}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <button className="text-blue-600 hover:text-blue-900">
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button className="text-blue-600 hover:text-blue-900">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button className="text-gray-600 hover:text-gray-900">
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button className="text-red-600 hover:text-red-900">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
         </div>
       ) : (
         <div className="bg-white shadow-sm rounded-lg border border-gray-200">
