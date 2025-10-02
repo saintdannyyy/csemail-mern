@@ -66,10 +66,12 @@ export interface TemplateVariable {
 
 export interface EmailTemplate {
   id: string;
+  _id?: string; // MongoDB ID field
   name: string;
   subject: string;
   description?: string;
   htmlContent: string;
+  content?: string; // Backend field that maps to htmlContent
   category: 'welcome' | 'newsletter' | 'promotional' | 'transactional' | 'announcement' | 'reminder' | 'survey' | 'other';
   tags: string[];
   type: 'html' | 'text';
@@ -84,6 +86,7 @@ export interface EmailTemplate {
   version: number;
   parentTemplate?: string;
   usageCount: number;
+  timesUsed?: number; // Alternative field name for usage count
   lastUsed?: string;
   metadata?: {
     estimatedSize?: number;
@@ -91,8 +94,8 @@ export interface EmailTemplate {
     imageCount?: number;
     linkCount?: number;
   };
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string; // Made optional for delete operations
+  updatedAt?: string; // Made optional for delete operations
 }
 
 export interface EmailJob {
