@@ -10,7 +10,11 @@ const contactSchema = new mongoose.Schema(
       enum: ["active", "inactive", "bounced", "unsubscribed"],
       default: "active",
     },
-    tags: [{ type: String }],
+    tags: {
+      type: [String],
+      enum: ["order", "confirmation", "receipt", "newsletter", "promotion", "ecommerce"],
+      default: ["order", "confirmation", "receipt", "newsletter", "promotion", "ecommerce"]
+    },
     customFields: { type: Map, of: String },
     lists: [{ type: mongoose.Schema.Types.ObjectId, ref: "ContactList" }],
     createdBy: {

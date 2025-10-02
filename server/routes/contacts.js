@@ -97,15 +97,30 @@ router.post(
           .json({ error: "Contact with this email already exists" });
       }
 
+      // Parse tags if they come as a string
+      let parsedTags = [];
+      if (tags) {
+        if (typeof tags === 'string') {
+          try {
+            parsedTags = JSON.parse(tags);
+          } catch (e) {
+            // If parsing fails, treat as comma-separated string
+            parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+          }
+        } else if (Array.isArray(tags)) {
+          parsedTags = tags;
+        }
+      }
+
       // Create contact
       const contact = new Contact({
         email: email.toLowerCase(),
         firstName,
         lastName,
-        // tags,
+        tags:["order", "confirmation", "receipt", "newsletter", "promotion", "ecommerce"],
         customFields,
         status: "active",
-        // lists: listIds,
+        lists: listIds,
         createdBy: req.user._id,
       });
 
@@ -173,12 +188,25 @@ router.put(
         }
       }
 
+      // Parse tags if they come as a string
+      let parsedTags = tags;
+      if (tags) {
+        if (typeof tags === 'string') {
+          try {
+            parsedTags = JSON.parse(tags);
+          } catch (e) {
+            // If parsing fails, treat as comma-separated string
+            parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+          }
+        }
+      }
+
       // Prepare update data
       const updateData = {
         ...(email && { email: email.toLowerCase() }),
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
-        ...(tags && { tags }),
+        ...(tags !== undefined && { tags: parsedTags }),
         ...(customFields && { customFields }),
         ...(status && { status }),
         ...(listIds && { lists: listIds }),

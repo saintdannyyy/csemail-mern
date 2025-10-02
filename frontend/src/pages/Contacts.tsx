@@ -364,16 +364,32 @@ export const Contacts: React.FC = () => {
                         {contact.customFields.position || "-"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-wrap gap-1">
-                        {contact.tags.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                    <td className="px-6 py-4">
+                      <div className="w-full max-w-xs">
+                        {/* First row - up to 3 tags */}
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {contact.tags.slice(0, 3).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        {/* Second row - remaining tags */}
+                        {contact.tags.length > 3 && (
+                          <div className="flex flex-wrap gap-1">
+                            {contact.tags.slice(3).map((tag, index) => (
+                              <span
+                                key={index + 3}
+                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
