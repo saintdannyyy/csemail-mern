@@ -397,7 +397,11 @@ export const EmailEditor: React.FC = () => {
   const location = useLocation();
   const [blocks, setBlocks] = useState<EmailBlock[]>([]);
   const [previewMode, setPreviewMode] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
+  const [templateName, setTemplateName] = useState("");
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Load template data if coming from Templates page
   useEffect(() => {
@@ -483,14 +487,57 @@ export const EmailEditor: React.FC = () => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${emailSubject}</title>
+        <title>${emailSubject || "Email"}</title>
         <style>
-          body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f4f4f4; }
-          .email-container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; }
-          .email-block { margin-bottom: 15px; }
-          .button { display: inline-block; padding: 12px 24px; text-decoration: none; border-radius: 4px; }
-          .divider { border: none; height: 1px; background-color: #e5e5e5; margin: 20px 0; }
-          img { max-width: 100%; height: auto; }
+          body { 
+            margin: 0; 
+            padding: 20px; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f8f9fa; 
+            line-height: 1.6;
+          }
+          .email-container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .email-block { margin-bottom: 20px; }
+          .button { 
+            display: inline-block; 
+            padding: 14px 28px; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+          }
+          .button:hover { opacity: 0.9; transform: translateY(-1px); }
+          .divider { 
+            border: none; 
+            height: 2px; 
+            background: linear-gradient(90deg, transparent, #e5e5e5, transparent); 
+            margin: 30px 0; 
+          }
+          img { 
+            max-width: 100%; 
+            height: auto; 
+            border-radius: 8px;
+          }
+          @media only screen and (max-width: 600px) {
+            .email-container { 
+              padding: 20px; 
+              margin: 10px;
+              border-radius: 8px;
+            }
+            .button { 
+              display: block; 
+              text-align: center; 
+              margin: 10px 0;
+            }
+          }
         </style>
       </head>
       <body>
@@ -546,6 +593,46 @@ export const EmailEditor: React.FC = () => {
     return html;
   };
 
+  const saveAsTemplate = async () => {
+    if (!templateName.trim()) {
+      alert("Please enter a template name");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const templateData = {
+        name: templateName,
+        subject: emailSubject,
+        content: generateEmailHTML(),
+        description: `Created from Email Editor - ${blocks.length} blocks`,
+        variables: [], // Could be extracted from content if needed
+      };
+
+      const response = await fetch("/api/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify(templateData),
+      });
+
+      if (response.ok) {
+        alert("Template saved successfully!");
+        setShowSaveModal(false);
+        setTemplateName("");
+      } else {
+        throw new Error("Failed to save template");
+      }
+    } catch (error) {
+      console.error("Error saving template:", error);
+      alert("Failed to save template. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const exportEmail = () => {
     const html = generateEmailHTML();
     const blob = new Blob([html], { type: "text/html" });
@@ -553,6 +640,25 @@ export const EmailEditor: React.FC = () => {
     const a = document.createElement("a");
     a.href = url;
     a.download = `${emailSubject || "email"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportAsJSON = () => {
+    const data = {
+      subject: emailSubject,
+      blocks: blocks,
+      createdAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${emailSubject || "email"}-template.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -686,12 +792,41 @@ export const EmailEditor: React.FC = () => {
                 {previewMode ? "Edit" : "Preview"}
               </button>
 
+              {previewMode && (
+                <button
+                  onClick={() => setMobilePreview(!mobilePreview)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    mobilePreview
+                      ? "bg-purple-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  📱 {mobilePreview ? "Desktop" : "Mobile"}
+                </button>
+              )}
+
               <button
-                onClick={exportEmail}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                onClick={() => setShowSaveModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <DocumentArrowDownIcon className="w-4 h-4" />
-                Export
+                💾 Save Template
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={exportEmail}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <DocumentArrowDownIcon className="w-4 h-4" />
+                  Export HTML
+                </button>
+              </div>
+
+              <button
+                onClick={exportAsJSON}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                📄 JSON
               </button>
             </div>
           </div>
@@ -702,10 +837,20 @@ export const EmailEditor: React.FC = () => {
           <div className="max-w-2xl mx-auto">
             {previewMode ? (
               /* Preview Mode */
-              <div
-                className="bg-white p-6 rounded-lg shadow-sm border"
-                dangerouslySetInnerHTML={{ __html: generateEmailHTML() }}
-              />
+              <div className="flex justify-center">
+                <div
+                  className={`bg-white rounded-lg shadow-sm border transition-all duration-300 ${
+                    mobilePreview
+                      ? "w-80 p-4" // Mobile width
+                      : "w-full max-w-2xl p-6" // Desktop width
+                  }`}
+                >
+                  <div
+                    className={mobilePreview ? "text-sm" : ""}
+                    dangerouslySetInnerHTML={{ __html: generateEmailHTML() }}
+                  />
+                </div>
+              </div>
             ) : (
               /* Edit Mode */
               <div className="bg-white p-6 rounded-lg shadow-sm border min-h-96">
@@ -742,6 +887,75 @@ export const EmailEditor: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Save Template Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Save as Template</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Template Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Newsletter Template v1"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Email subject line"
+                  />
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  <p>Template will include:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>{blocks.length} email blocks</li>
+                    <li>Complete HTML structure</li>
+                    <li>All styling and formatting</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowSaveModal(false);
+                    setTemplateName("");
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveAsTemplate}
+                  disabled={!templateName.trim() || saving}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? "Saving..." : "Save Template"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
