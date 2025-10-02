@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  X,
-  Mail,
-  Users,
-  Settings,
-  Eye,
-  Send,
-  Calendar,
-  Plus,
-} from "lucide-react";
+import { X, Mail, Users, Settings, Eye, Plus } from "lucide-react";
 import { ContactListManagerModal } from "../Contact/ContactListManagerModal";
 
 interface Template {
