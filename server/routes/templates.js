@@ -58,33 +58,17 @@ router.get(
         createdAt: -1,
       });
 
-      res.json(templates || []);
+      // Map content to htmlContent for frontend compatibility
+      const mappedTemplates = templates.map((template) => {
+        const templateObj = template.toObject();
+        templateObj.htmlContent = templateObj.content;
+        return templateObj;
+      });
+
+      res.json(mappedTemplates || []);
     } catch (error) {
       console.error("Get templates error:", error);
       res.status(500).json({ error: "Failed to fetch templates" });
-    }
-  }
-);
-
-// Get single template by ID
-router.get(
-  "/:id",
-  authenticateToken,
-  requireRole(["admin", "editor"]),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-
-      const template = await Template.findById(id);
-
-      if (!template) {
-        return res.status(404).json({ error: "Template not found" });
-      }
-
-      res.json(template);
-    } catch (error) {
-      console.error("Get template error:", error);
-      res.status(500).json({ error: "Failed to fetch template" });
     }
   }
 );
@@ -110,7 +94,7 @@ router.post(
   }
 );
 
-// Get predefined template library
+// Get predefined template library (MUST be before /:id route)
 router.get("/library", authenticateToken, async (req, res) => {
   try {
     const { category } = req.query;
@@ -123,7 +107,23 @@ router.get("/library", authenticateToken, async (req, res) => {
     }
 
     if (result.success) {
-      res.json(result.templates);
+      let templates;
+
+      if (category) {
+        // Category-specific request returns array
+        templates = result.templates;
+      } else {
+        // All templates request returns grouped object, flatten it
+        templates = Object.values(result.templates).flat();
+      }
+
+      // Map content to htmlContent for frontend compatibility
+      const mappedTemplates = templates.map((template) => {
+        const templateObj = template.toObject ? template.toObject() : template;
+        templateObj.htmlContent = templateObj.content;
+        return templateObj;
+      });
+      res.json(mappedTemplates);
     } else {
       res.status(500).json({ error: result.error });
     }
@@ -132,6 +132,33 @@ router.get("/library", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch template library" });
   }
 });
+
+// Get single template by ID
+router.get(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const template = await Template.findById(id);
+
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      // Map content to htmlContent for frontend compatibility
+      const templateObj = template.toObject();
+      templateObj.htmlContent = templateObj.content;
+
+      res.json(templateObj);
+    } catch (error) {
+      console.error("Get template error:", error);
+      res.status(500).json({ error: "Failed to fetch template" });
+    }
+  }
+);
 
 // Clone a predefined template to user's templates
 router.post(
@@ -472,6 +499,7 @@ router.post(
         name,
         subject,
         content,
+        htmlContent, // Support both field names
         description,
         category = "other",
         tags = [],
@@ -480,7 +508,10 @@ router.post(
         isDefault = false,
       } = req.body;
 
-      if (!name || !subject || !content) {
+      // Use content if provided, otherwise use htmlContent
+      const templateContent = content || htmlContent;
+
+      if (!name || !subject || !templateContent) {
         return res
           .status(400)
           .json({ error: "Name, subject, and content are required" });
@@ -489,7 +520,7 @@ router.post(
       const template = new Template({
         name,
         subject,
-        content,
+        content: templateContent, // Always save to content field
         description,
         category,
         tags,
@@ -530,6 +561,7 @@ router.put(
         name,
         subject,
         content,
+        htmlContent, // Support both field names
         description,
         category,
         tags,
@@ -538,12 +570,15 @@ router.put(
         isDefault,
       } = req.body;
 
+      // Use content if provided, otherwise use htmlContent
+      const templateContent = content || htmlContent;
+
       const template = await Template.findByIdAndUpdate(
         id,
         {
           name,
           subject,
-          content,
+          content: templateContent, // Always save to content field
           description,
           category,
           tags,
@@ -559,6 +594,10 @@ router.put(
         return res.status(404).json({ error: "Template not found" });
       }
 
+      // Map content to htmlContent for frontend compatibility
+      const templateObj = template.toObject();
+      templateObj.htmlContent = templateObj.content;
+
       // Log audit event
       await AuditLog.create({
         userId: req.user.userId,
@@ -568,7 +607,7 @@ router.put(
         details: { name, description, category },
       });
 
-      res.json(template);
+      res.json(templateObj);
     } catch (error) {
       console.error("Update template error:", error);
       res.status(500).json({ error: "Failed to update template" });
