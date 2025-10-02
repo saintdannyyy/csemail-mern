@@ -8,7 +8,6 @@ require("dotenv").config({ path: path.join(__dirname, "../.env") });
 
 mongoose.set("debug", true);
 
-
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => console.log("Connected to MongoDB"))

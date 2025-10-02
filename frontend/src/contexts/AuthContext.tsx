@@ -32,8 +32,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (storedToken) {
         try {
           apiClient.setToken(storedToken);
+
+          // Check if token is still valid
+          if (!apiClient.isAuthenticated()) {
+            console.warn("Stored token is expired or invalid");
+            setIsLoading(false);
+            return;
+          }
+
           const userData = await apiClient.getCurrentUser();
-          setUser(userData.user); // <-- instead of setUser(userData)
+          setUser(userData.user);
         } catch (error) {
           console.error("Failed to validate stored token:", error);
           // Clear invalid token

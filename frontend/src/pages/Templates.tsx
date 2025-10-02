@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -15,6 +16,7 @@ import { EmailTemplate } from "../types";
 import TemplateLibrary from "../components/Templates/TemplateLibrary";
 
 export const Templates: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeTab, setActiveTab] = useState<"templates" | "library">(
@@ -88,10 +90,19 @@ export const Templates: React.FC = () => {
   );
 
   const handleTemplateSelect = (template: any) => {
-    // Handle template selection from library - could navigate to editor
-    console.log("Selected template:", template);
-    // You could navigate to the email editor with this template
-    // navigate('/email-editor', { state: { template } });
+    // Navigate to email editor with selected template
+    console.log("Using template for new email:", template);
+
+    // Check if you have an email editor route, if not, copy the template
+    try {
+      // Option 1: Navigate to email editor (uncomment and update route as needed)
+      navigate("/email-editor", { state: { template } });
+    } catch (error) {
+      // Fallback: Copy the template to user's templates
+      console.warn("Email editor route not found, copying template instead");
+      handleCopyTemplate(template);
+      alert(`Template "${template.name}" copied to your templates!`);
+    }
   };
 
   const handleViewTemplate = (template: EmailTemplate) => {

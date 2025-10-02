@@ -10,10 +10,12 @@ import {
   Trash2,
 } from "lucide-react";
 import { Campaign } from "../types";
+import { CreateCampaignModal } from "../components/Campaigns/CreateCampaignModal";
 
 export const Campaigns: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -39,6 +41,10 @@ export const Campaigns: React.FC = () => {
     };
     fetchCampaigns();
   }, []);
+
+  const handleCampaignCreated = (newCampaign: Campaign) => {
+    setCampaigns((prev) => [newCampaign, ...prev]);
+  };
 
   const filteredCampaigns = campaigns.filter((campaign) => {
     const matchesSearch =
@@ -92,7 +98,10 @@ export const Campaigns: React.FC = () => {
             </p>
           </div>
           <div className="flex space-x-3">
-            <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create Campaign
             </button>
@@ -306,6 +315,13 @@ export const Campaigns: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Create Campaign Modal */}
+      <CreateCampaignModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCampaignCreated={handleCampaignCreated}
+      />
     </div>
   );
 };

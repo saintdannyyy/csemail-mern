@@ -83,6 +83,37 @@ router.put("/", authenticateToken, requireRole(["admin"]), async (req, res) => {
   }
 });
 
+// Get email defaults for campaign creation
+router.get(
+  "/email-defaults",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const settings = await Settings.findOne();
+
+      const defaults = {
+        fromName:
+          settings?.fromName || process.env.DEFAULT_FROM_NAME || "CSE Mail",
+        fromEmail:
+          settings?.fromEmail ||
+          process.env.DEFAULT_FROM_EMAIL ||
+          "noreply@example.com",
+        replyToEmail:
+          settings?.replyToEmail ||
+          process.env.SUPPORT_EMAIL ||
+          process.env.DEFAULT_FROM_EMAIL ||
+          "noreply@example.com",
+      };
+
+      res.json(defaults);
+    } catch (error) {
+      console.error("Get email defaults error:", error);
+      res.status(500).json({ error: "Failed to fetch email defaults" });
+    }
+  }
+);
+
 // Get SMTP configuration
 router.get(
   "/smtp",
