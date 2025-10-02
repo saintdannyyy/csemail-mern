@@ -109,12 +109,18 @@ export const Templates: React.FC = () => {
   const handleCopyTemplate = async (template: EmailTemplate) => {
     try {
       const { apiClient } = await import("../utils/apiClient");
-      // Create new template by destructuring to exclude certain fields
-      const { id, _id, createdAt, updatedAt, ...templateData } = template;
+
+      // Only send the fields that the backend expects
       const newTemplate = {
-        ...templateData,
         name: `${template.name} (Copy)`,
-        isDefault: false,
+        subject: template.subject,
+        content: template.content || template.htmlContent, // Use content field for backend
+        description: template.description,
+        category: template.category,
+        tags: template.tags || [],
+        variables: template.variables || [],
+        thumbnailUrl: template.thumbnailUrl,
+        isDefault: false, // Copies are never default
       };
 
       const created = await apiClient.createTemplate(newTemplate);
@@ -818,6 +824,52 @@ export const Templates: React.FC = () => {
                             </div>
                           </div>
                         )}
+                      {viewingTemplate.variables &&
+                        viewingTemplate.variables.length > 0 && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-600">
+                              Template Variables:
+                            </span>
+                            <div className="mt-2 space-y-2">
+                              {viewingTemplate.variables.map(
+                                (variable, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-yellow-50 border border-yellow-200 rounded p-2"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <code className="text-sm font-mono text-yellow-800">
+                                        {`{{${variable.name}}}`}
+                                      </code>
+                                      <span className="text-xs text-yellow-600 capitalize">
+                                        {variable.type}
+                                      </span>
+                                    </div>
+                                    {variable.description && (
+                                      <p className="text-xs text-yellow-700 mt-1">
+                                        {variable.description}
+                                      </p>
+                                    )}
+                                    {variable.defaultValue && (
+                                      <p className="text-xs text-yellow-600 mt-1">
+                                        Default: {variable.defaultValue}
+                                      </p>
+                                    )}
+                                  </div>
+                                )
+                              )}
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                                <p className="text-xs text-blue-700">
+                                  <strong>💡 Usage:</strong> These variables
+                                  will be automatically replaced with actual
+                                  values when sending emails. Use the format{" "}
+                                  <code className="bg-blue-100 px-1 rounded">{`{{variable_name}}`}</code>{" "}
+                                  in your template content.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                     </div>
                   </div>
 
@@ -892,7 +944,7 @@ export const Templates: React.FC = () => {
                         }
                         className="w-full h-96 border-0"
                         title="Email Preview"
-                        sandbox="allow-same-origin allow-scripts"
+                        sandbox="allow-same-origin"
                       />
                     </div>
                   </div>
