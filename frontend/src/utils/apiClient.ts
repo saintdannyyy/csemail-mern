@@ -237,6 +237,23 @@ class ApiClient {
     return response.blob();
   }
 
+  // Contact List methods
+  async getContactLists(): Promise<any> {
+    return this.get('/api/contacts/lists');
+  }
+
+  async createContactList(list: any): Promise<any> {
+    return this.post('/api/contacts/lists', list);
+  }
+
+  async updateContactList(listId: string, list: any): Promise<any> {
+    return this.put(`/api/contacts/lists/${listId}`, list);
+  }
+
+  async deleteContactList(listId: string): Promise<any> {
+    return this.delete(`/api/contacts/lists/${listId}`);
+  }
+
   // Campaign methods
   async getCampaigns(page: number = 1, limit: number = 20): Promise<any> {
     return this.get(`/api/campaigns?page=${page}&limit=${limit}`);
@@ -244,6 +261,22 @@ class ApiClient {
 
   async createCampaign(campaign: any): Promise<any> {
     return this.post('/api/campaigns', campaign);
+  }
+
+  async sendCampaign(campaignId: string, options?: any): Promise<any> {
+    return this.post(`/api/campaigns/${campaignId}/send`, options || {});
+  }
+
+  async previewCampaign(campaignId: string, variables?: any, sampleContact?: any): Promise<any> {
+    return this.post(`/api/campaigns/${campaignId}/preview`, { variables, sampleContact });
+  }
+
+  async testCampaign(campaignId: string, testEmails: string[], variables?: any, sampleContact?: any): Promise<any> {
+    return this.post(`/api/campaigns/${campaignId}/test`, { testEmails, variables, sampleContact });
+  }
+
+  async getCampaignAnalytics(campaignId: string): Promise<any> {
+    return this.get(`/api/campaigns/${campaignId}/analytics`);
   }
 
   // Template methods
