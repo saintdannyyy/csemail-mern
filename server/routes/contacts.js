@@ -305,24 +305,23 @@ router.get(
   requireRole(["admin", "editor"]),
   async (req, res) => {
     try {
-      const lists = await ContactList.find()
-        .populate("contacts", "_id")
-        .sort({ createdAt: -1 });
+      console.log("GET /api/contacts/lists - Fetching contact lists");
 
-      // Add contact count to each list
-      const listsWithCount = lists.map((list) => {
-        const listObj = list.toObject();
-        return {
-          _id: listObj._id,
-          name: listObj.name,
-          description: listObj.description,
-          contactCount: list.contacts ? list.contacts.length : 0,
-          createdAt: listObj.createdAt,
-          updatedAt: listObj.updatedAt,
-        };
-      });
+      const lists = await ContactList.find().sort({ createdAt: -1 });
 
-      res.json({ lists: listsWithCount });
+      console.log(`Found ${lists.length} contact lists`);
+
+      // Format the response
+      const formattedLists = lists.map((list) => ({
+        _id: list._id,
+        name: list.name,
+        description: list.description,
+        contactCount: list.contactCount || 0,
+        createdAt: list.createdAt,
+        updatedAt: list.updatedAt,
+      }));
+
+      res.json({ lists: formattedLists });
     } catch (error) {
       console.error("Get lists error:", error);
       res.status(500).json({ error: "Failed to fetch lists" });
@@ -498,49 +497,34 @@ router.post(
   requireRole(["admin", "editor"]),
   async (req, res) => {
     try {
+      console.log("POST /api/contacts/lists - Creating contact list");
       const { name, description } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: "List name is required" });
       }
 
-      // Create contact list
-      router.post(
-        "/lists",
-        authenticateToken,
-        requireRole(["admin", "editor"]),
-        async (req, res) => {
-          try {
-            const { name, description } = req.body;
+      const list = new ContactList({
+        name,
+        description,
+        createdBy: req.user.userId,
+        contactCount: 0,
+      });
 
-            if (!name) {
-              return res.status(400).json({ error: "List name is required" });
-            }
+      await list.save();
 
-            const list = new ContactList({
-              name,
-              description,
-              createdBy: req.user.userId,
-            });
+      console.log("Contact list created:", list._id);
 
-            await list.save();
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user.userId,
+        action: "list_created",
+        targetType: "list",
+        targetId: list._id,
+        details: { name, description },
+      });
 
-            // Log audit event
-            await AuditLog.create({
-              userId: req.user.userId,
-              action: "list_created",
-              targetType: "list",
-              targetId: list._id,
-              details: { name, description },
-            });
-
-            res.status(201).json(list);
-          } catch (error) {
-            console.error("Create list error:", error);
-            res.status(500).json({ error: "Failed to create list" });
-          }
-        }
-      );
+      res.status(201).json(list);
     } catch (error) {
       console.error("Create list error:", error);
       res.status(500).json({ error: "Failed to create list" });
