@@ -32,9 +32,14 @@ export const Contacts: React.FC = () => {
     contactId: string;
     contactName: string;
   }>({ isOpen: false, contactId: "", contactName: "" });
-  const [exportModal, setExportModal] = useState<{ isOpen: boolean }>({ isOpen: false });
+  const [exportModal, setExportModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
   const [addContactOpen, setAddContactOpen] = useState(false);
-  const [editContactOpen, setEditContactOpen] = useState<{ open: boolean; contactId: string }>({ open: false, contactId: '' });
+  const [editContactOpen, setEditContactOpen] = useState<{
+    open: boolean;
+    contactId: string;
+  }>({ open: false, contactId: "" });
   const [showContactListManager, setShowContactListManager] = useState(false);
 
   useEffect(() => {
@@ -51,6 +56,7 @@ export const Contacts: React.FC = () => {
                 ...contact,
                 id: contact._id || contact.id,
                 listIds: contact.lists || contact.listIds || [],
+                customFields: contact.customFields || {},
               }))
             : [];
         setContacts(mappedContacts);
@@ -74,6 +80,7 @@ export const Contacts: React.FC = () => {
         ...newContact,
         id: newContact._id || newContact.id,
         listIds: newContact.lists || newContact.listIds || [],
+        customFields: newContact.customFields || {},
       };
       setContacts((prev) => [...prev, mappedNewContact]);
       setAddContactOpen(false); // Close the add dialog
@@ -101,7 +108,7 @@ export const Contacts: React.FC = () => {
       setContacts((prev) =>
         prev.map((c) => (c.id === contactId ? mappedUpdatedContact : c))
       );
-      setEditContactOpen({ open: false, contactId: '' }); // Close the edit dialog
+      setEditContactOpen({ open: false, contactId: "" }); // Close the edit dialog
     } catch (error) {
       console.error("Failed to update contact:", error);
       alert("Failed to update contact. Please try again.");
@@ -190,6 +197,7 @@ export const Contacts: React.FC = () => {
               ...contact,
               id: contact._id || contact.id,
               listIds: contact.lists || contact.listIds || [],
+              customFields: contact.customFields || {},
             }))
           : [];
       setContacts(mappedUpdatedContacts);
@@ -371,10 +379,10 @@ export const Contacts: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {contact.customFields.company || "-"}
+                        {contact.customFields?.company || "-"}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {contact.customFields.position || "-"}
+                        {contact.customFields?.position || "-"}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -415,12 +423,21 @@ export const Contacts: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <ContactFormDialog
                           contact={contact}
-                          open={editContactOpen.open && editContactOpen.contactId === contact.id}
+                          open={
+                            editContactOpen.open &&
+                            editContactOpen.contactId === contact.id
+                          }
                           onOpenChange={(open) => {
                             if (open) {
-                              setEditContactOpen({ open: true, contactId: contact.id });
+                              setEditContactOpen({
+                                open: true,
+                                contactId: contact.id,
+                              });
                             } else {
-                              setEditContactOpen({ open: false, contactId: '' });
+                              setEditContactOpen({
+                                open: false,
+                                contactId: "",
+                              });
                             }
                           }}
                           onSave={(data) => {
