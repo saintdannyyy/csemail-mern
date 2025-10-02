@@ -530,10 +530,22 @@ router.post(
           .json({ error: "Name, subject, and content are required" });
       }
 
-      if (!req.user || !req.user._id) {
-        console.error("User authentication failed - req.user:", req.user);
+      if (!req.user) {
+        console.error(
+          "User authentication failed - req.user is null/undefined"
+        );
         return res.status(401).json({ error: "User authentication required" });
       }
+
+      if (!req.user._id) {
+        console.error(
+          "User authentication failed - req.user._id missing:",
+          req.user
+        );
+        return res.status(401).json({ error: "User authentication required" });
+      }
+
+      console.log("User authentication successful - user ID:", req.user._id);
 
       const template = new Template({
         name,
