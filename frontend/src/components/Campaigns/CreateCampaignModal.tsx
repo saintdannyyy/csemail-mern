@@ -7,7 +7,13 @@ interface Template {
   subject: string;
   description?: string;
   content: string;
-  variables?: string[];
+  variables?: Array<{
+    name: string;
+    type: string;
+    defaultValue?: string;
+    required?: boolean;
+    description?: string;
+  }>;
   thumbnailUrl?: string;
 }
 
@@ -147,16 +153,20 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
   };
 
   const handleTemplateSelect = (template: Template) => {
+    // Extract variable names from the variables array
+    const templateVariables = (template.variables || [])
+      .map((variable) => variable.name)
+      .filter((name) => typeof name === "string") as string[];
+
     setFormData((prev) => ({
       ...prev,
       templateId: template._id,
       subject: template.subject,
       htmlContent: template.content,
-      variables:
-        template.variables?.reduce((acc, variable) => {
-          acc[variable] = "";
-          return acc;
-        }, {} as Record<string, string>) || {},
+      variables: templateVariables.reduce((acc, variableName) => {
+        acc[variableName] = "";
+        return acc;
+      }, {} as Record<string, string>),
     }));
   };
 
@@ -487,20 +497,35 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedTemplate.variables.map((variable) => (
-                        <div key={variable}>
+                        <div key={variable.name}>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {variable
+                            {variable.name
                               .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                            {variable.required && (
+                              <span className="text-red-500 ml-1">*</span>
+                            )}
                           </label>
                           <input
-                            type="text"
-                            value={formData.variables[variable] || ""}
+                            type={
+                              variable.type === "email"
+                                ? "email"
+                                : variable.type === "url"
+                                ? "url"
+                                : "text"
+                            }
+                            value={formData.variables[variable.name] || ""}
                             onChange={(e) =>
-                              handleVariableChange(variable, e.target.value)
+                              handleVariableChange(
+                                variable.name,
+                                e.target.value
+                              )
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder={`Enter ${variable}`}
+                            placeholder={
+                              variable.description || `Enter ${variable.name}`
+                            }
+                            defaultValue={variable.defaultValue}
                           />
                         </div>
                       ))}
