@@ -505,6 +505,9 @@ router.post(
   requireRole(["admin", "editor"]),
   async (req, res) => {
     try {
+      console.log("Create template request - User:", req.user); // Debug log
+      console.log("Create template request - Body:", req.body); // Debug log
+
       const {
         name,
         subject,
@@ -525,6 +528,11 @@ router.post(
         return res
           .status(400)
           .json({ error: "Name, subject, and content are required" });
+      }
+
+      if (!req.user || !req.user.userId) {
+        console.error("User authentication failed - req.user:", req.user);
+        return res.status(401).json({ error: "User authentication required" });
       }
 
       const template = new Template({
