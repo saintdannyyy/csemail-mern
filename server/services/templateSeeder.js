@@ -600,7 +600,7 @@ const getTemplatesByCategory = async (category) => {
     const templates = await Template.find({
       category,
       isPredefined: true,
-    }).select("name category tags subject variables thumbnail");
+    }).select("name category tags subject content variables thumbnail");
 
     return { success: true, templates };
   } catch (error) {
@@ -612,7 +612,9 @@ const getAllPredefinedTemplates = async () => {
   try {
     const templates = await Template.find({
       isPredefined: true,
-    }).select("name category tags subject variables thumbnail metadata");
+    }).select(
+      "name category tags subject content variables thumbnail metadata"
+    );
 
     // Group by category
     const groupedTemplates = templates.reduce((acc, template) => {
