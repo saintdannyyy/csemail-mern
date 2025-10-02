@@ -41,6 +41,7 @@ const templateSchema = new mongoose.Schema(
       mobile: { type: String },
     },
     isDefault: { type: Boolean, default: false },
+    isPredefined: { type: Boolean, default: false }, // For template library
     isPublic: { type: Boolean, default: false },
     version: { type: Number, default: 1 },
     parentTemplate: { type: mongoose.Schema.Types.ObjectId, ref: "Template" },
