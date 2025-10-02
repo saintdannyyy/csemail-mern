@@ -141,13 +141,22 @@ router.post(
       // If status is "sending", send the campaign immediately
       if (status === "sending") {
         try {
+          console.log("Campaign sending - Selected list IDs:", listIds);
+
           // Get contacts from selected lists
           const contacts = await Contact.find({
             lists: { $in: listIds },
             status: "active",
           });
 
+          console.log("Found contacts for sending:", contacts.length);
+          console.log(
+            "Contact details:",
+            contacts.map((c) => ({ email: c.email, lists: c.lists }))
+          );
+
           if (contacts.length === 0) {
+            console.log("No contacts found - returning error");
             return res
               .status(400)
               .json({ error: "No active contacts found in selected lists" });
@@ -182,12 +191,9 @@ router.post(
           // Keep campaign as draft if sending fails
           campaign.status = "draft";
           await campaign.save();
-          return res
-            .status(500)
-            .json({
-              error:
-                "Campaign created but failed to send: " + sendError.message,
-            });
+          return res.status(500).json({
+            error: "Campaign created but failed to send: " + sendError.message,
+          });
         }
       }
 
