@@ -9,12 +9,17 @@ import {
   Edit,
   Trash2,
   Tag,
+  List,
 } from "lucide-react";
 import { Contact } from "../types";
 import { ContactFormDialog } from "../components/Contact/ContactFormDialog";
 import { ImportContactsModal } from "../components/Contact/ImportContactsModal";
 import { DeleteContactModal } from "../components/Contact/DeleteContactModal";
-import { ExportContactsModal, ExportOptions } from "../components/Contact/ExportContactsModal";
+import {
+  ExportContactsModal,
+  ExportOptions,
+} from "../components/Contact/ExportContactsModal";
+import { ContactListManagerModal } from "../components/Contact/ContactListManagerModal";
 
 export const Contacts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,7 +32,10 @@ export const Contacts: React.FC = () => {
     contactId: string;
     contactName: string;
   }>({ isOpen: false, contactId: "", contactName: "" });
-  const [exportModal, setExportModal] = useState<{ isOpen: boolean }>({ isOpen: false });
+  const [exportModal, setExportModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [showContactListManager, setShowContactListManager] = useState(false);
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -105,10 +113,10 @@ export const Contacts: React.FC = () => {
     try {
       const apiClient = (await import("../utils/apiClient")).apiClient;
       await apiClient.deleteContact(deleteModal.contactId);
-      
+
       // Remove contact from state
       setContacts((prev) => prev.filter((c) => c.id !== deleteModal.contactId));
-      
+
       console.log(`Successfully deleted contact: ${deleteModal.contactName}`);
     } catch (error) {
       console.error("Failed to delete contact:", error);
@@ -129,25 +137,25 @@ export const Contacts: React.FC = () => {
     try {
       const apiClient = (await import("../utils/apiClient")).apiClient;
       const blob = await apiClient.exportContacts(options);
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      
+
       // Set filename based on format
-      const timestamp = new Date().toISOString().split('T')[0];
+      const timestamp = new Date().toISOString().split("T")[0];
       const filename = `contacts_${timestamp}.${options.format}`;
-      link.setAttribute('download', filename);
-      
+      link.setAttribute("download", filename);
+
       // Trigger download
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
+
       // Clean up
       window.URL.revokeObjectURL(url);
-      
+
       console.log(`Successfully exported contacts as ${options.format}`);
     } catch (error) {
       console.error("Failed to export contacts:", error);
@@ -230,6 +238,13 @@ export const Contacts: React.FC = () => {
             </p>
           </div>
           <div className="flex space-x-3">
+            <button
+              onClick={() => setShowContactListManager(true)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <List className="h-4 w-4 mr-2" />
+              Manage Lists
+            </button>
             <ImportContactsModal
               onImport={handleImportContacts}
               trigger={
@@ -239,7 +254,7 @@ export const Contacts: React.FC = () => {
                 </button>
               }
             />
-            <button 
+            <button
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               onClick={openExportModal}
             >
@@ -386,9 +401,14 @@ export const Contacts: React.FC = () => {
                             </button>
                           }
                         />
-                        <button 
+                        <button
                           className="text-red-600 hover:text-red-900"
-                          onClick={() => openDeleteModal(contact.id, `${contact.firstName} ${contact.lastName}`)}
+                          onClick={() =>
+                            openDeleteModal(
+                              contact.id,
+                              `${contact.firstName} ${contact.lastName}`
+                            )
+                          }
                           title="Delete contact"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -420,7 +440,18 @@ export const Contacts: React.FC = () => {
         onClose={closeExportModal}
         onExport={handleExportContacts}
         totalContacts={contacts.length}
-        filteredContacts={filteredContacts.length !== contacts.length ? filteredContacts.length : undefined}
+        filteredContacts={
+          filteredContacts.length !== contacts.length
+            ? filteredContacts.length
+            : undefined
+        }
+      />
+
+      {/* Contact List Manager Modal */}
+      <ContactListManagerModal
+        isOpen={showContactListManager}
+        onClose={() => setShowContactListManager(false)}
+        mode="manage"
       />
     </div>
   );
