@@ -1,13 +1,23 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "react-beautiful-dnd";
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
 import {
-  PlusIcon,
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   TrashIcon,
   EyeIcon,
   DocumentArrowDownIcon,
@@ -17,6 +27,39 @@ import {
   LinkIcon,
   MinusIcon,
 } from "@heroicons/react/24/outline";
+
+// Sortable item component for @dnd-kit
+const SortableItem: React.FC<{
+  id: string;
+  children: React.ReactNode;
+}> = ({ id, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-gray-50 p-2 rounded-lg border"
+    >
+      {children}
+    </div>
+  );
+};
 
 // Email block types
 export interface EmailBlock {
@@ -325,6 +368,7 @@ const DividerBlock: React.FC<{ block: EmailBlock; onDelete: () => void }> = ({
 };
 
 const SpacerBlock: React.FC<{ block: EmailBlock; onDelete: () => void }> = ({
+  block,
   onDelete,
 }) => {
   return (
@@ -376,14 +420,22 @@ export const EmailEditor: React.FC = () => {
     }
   }, [location.state]);
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-    const newBlocks = Array.from(blocks);
-    const [reorderedItem] = newBlocks.splice(result.source.index, 1);
-    newBlocks.splice(result.destination.index, 0, reorderedItem);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    setBlocks(newBlocks);
+    if (active.id !== over?.id) {
+      const oldIndex = blocks.findIndex((block) => block.id === active.id);
+      const newIndex = blocks.findIndex((block) => block.id === over?.id);
+
+      setBlocks(arrayMove(blocks, oldIndex, newIndex));
+    }
   };
 
   const addBlock = (type: EmailBlock["type"]) => {
@@ -541,7 +593,7 @@ export const EmailEditor: React.FC = () => {
           />
         );
       case "divider":
-        return <DividerBlock key={block.id} {...commonProps} />;
+        return <DividerBlock key={block.id} block={block} {...commonProps} />;
       case "spacer":
         return <SpacerBlock key={block.id} block={block} {...commonProps} />;
       default:
@@ -666,37 +718,24 @@ export const EmailEditor: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <DragDropContext onDragEnd={handleDragEnd}>
-                    <Droppable droppableId="email-blocks">
-                      {(provided) => (
-                        <div
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                          className="space-y-4"
-                        >
-                          {blocks.map((block, index) => (
-                            <Draggable
-                              key={block.id}
-                              draggableId={block.id}
-                              index={index}
-                            >
-                              {(provided) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className="bg-gray-50 p-2 rounded-lg border"
-                                >
-                                  {renderBlock(block, index)}
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={blocks.map((block) => block.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-4">
+                        {blocks.map((block, index) => (
+                          <SortableItem key={block.id} id={block.id}>
+                            {renderBlock(block, index)}
+                          </SortableItem>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             )}
