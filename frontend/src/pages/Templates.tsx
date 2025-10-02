@@ -394,7 +394,9 @@ export const Templates: React.FC = () => {
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>
                         Created{" "}
-                        {template.createdAt ? new Date(template.createdAt).toLocaleDateString() : 'Unknown'}
+                        {template.createdAt
+                          ? new Date(template.createdAt).toLocaleDateString()
+                          : "Unknown"}
                       </span>
                       <div className="flex items-center space-x-2">
                         <button
@@ -522,7 +524,11 @@ export const Templates: React.FC = () => {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {template.createdAt ? new Date(template.createdAt).toLocaleDateString() : 'Unknown'}
+                            {template.createdAt
+                              ? new Date(
+                                  template.createdAt
+                                ).toLocaleDateString()
+                              : "Unknown"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center space-x-2">
@@ -657,7 +663,13 @@ export const Templates: React.FC = () => {
                     value={editingTemplate.category || "other"}
                     onChange={(e) =>
                       setEditingTemplate((prev) =>
-                        prev ? { ...prev, category: e.target.value as EmailTemplate['category'] } : null
+                        prev
+                          ? {
+                              ...prev,
+                              category: e.target
+                                .value as EmailTemplate["category"],
+                            }
+                          : null
                       )
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -827,9 +839,11 @@ export const Templates: React.FC = () => {
                           Created:
                         </span>
                         <p className="text-sm text-gray-900 mt-1">
-                          {viewingTemplate.createdAt ? new Date(
-                            viewingTemplate.createdAt
-                          ).toLocaleDateString() : 'Unknown'}
+                          {viewingTemplate.createdAt
+                            ? new Date(
+                                viewingTemplate.createdAt
+                              ).toLocaleDateString()
+                            : "Unknown"}
                         </p>
                       </div>
                       <div>
@@ -837,9 +851,11 @@ export const Templates: React.FC = () => {
                           Last Modified:
                         </span>
                         <p className="text-sm text-gray-900 mt-1">
-                          {viewingTemplate.updatedAt ? new Date(
-                            viewingTemplate.updatedAt
-                          ).toLocaleDateString() : 'Unknown'}
+                          {viewingTemplate.updatedAt
+                            ? new Date(
+                                viewingTemplate.updatedAt
+                              ).toLocaleDateString()
+                            : "Unknown"}
                         </p>
                       </div>
                       {viewingTemplate.isDefault && (
