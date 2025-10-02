@@ -198,7 +198,7 @@ router.post(
         isTemplate: false,
         isPredefined: false,
         clonedFrom: sourceTemplate._id,
-        createdBy: req.user.userId,
+        createdBy: req.user._id,
         metadata: {
           ...sourceTemplate.metadata,
           clonedAt: new Date(),
@@ -210,7 +210,7 @@ router.post(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_cloned",
         targetType: "template",
         targetId: clonedTemplate._id,
@@ -269,7 +269,7 @@ router.post(
 
       // Log test email send
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_test_sent",
         targetType: "template",
         targetId: template._id,
@@ -325,7 +325,7 @@ router.post(
 
       // Log analysis
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_analyzed",
         targetType: "template",
         targetId: template._id,
@@ -530,7 +530,7 @@ router.post(
           .json({ error: "Name, subject, and content are required" });
       }
 
-      if (!req.user || !req.user.userId) {
+      if (!req.user || !req.user._id) {
         console.error("User authentication failed - req.user:", req.user);
         return res.status(401).json({ error: "User authentication required" });
       }
@@ -545,14 +545,14 @@ router.post(
         variables,
         thumbnailUrl,
         isDefault,
-        createdBy: req.user.userId,
+        createdBy: req.user._id,
       });
 
       await template.save();
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_created",
         targetType: "template",
         targetId: template._id,
@@ -618,7 +618,7 @@ router.put(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_updated",
         targetType: "template",
         targetId: template._id,
@@ -659,7 +659,7 @@ router.delete(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_deleted",
         targetType: "template",
         targetId: template._id,
@@ -697,14 +697,14 @@ router.post(
         htmlContent: originalTemplate.htmlContent,
         thumbnailUrl: originalTemplate.thumbnailUrl,
         isDefault: false,
-        createdBy: req.user.userId,
+        createdBy: req.user._id,
       });
 
       await newTemplate.save();
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_duplicated",
         targetType: "template",
         targetId: newTemplate._id,
@@ -745,7 +745,7 @@ router.post(
           htmlContent: jsonData.htmlContent || jsonData.content || "",
           thumbnailUrl: jsonData.thumbnailUrl || "",
           isDefault: false,
-          createdBy: req.user.userId,
+          createdBy: req.user._id,
         };
       } else if (fileExtension === "html") {
         const htmlContent = fileBuffer.toString();
@@ -755,7 +755,7 @@ router.post(
           htmlContent: htmlContent,
           thumbnailUrl: "",
           isDefault: false,
-          createdBy: req.user.userId,
+          createdBy: req.user._id,
         };
       } else {
         return res
@@ -768,7 +768,7 @@ router.post(
 
       // Log the import activity
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_imported",
         targetType: "template",
         targetId: template._id,
@@ -838,7 +838,7 @@ router.get(
 
       // Log the export activity
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_exported",
         targetType: "template",
         targetId: template._id,
@@ -889,7 +889,7 @@ router.post(
         description: originalTemplate.description,
         changes: changes || "Version created",
         createdAt: new Date(),
-        createdBy: req.user.userId,
+        createdBy: req.user._id,
       });
 
       // Update template with new content
@@ -904,7 +904,7 @@ router.post(
 
       // Log the version creation
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_version_created",
         targetType: "template",
         targetId: originalTemplate._id,
@@ -993,7 +993,7 @@ router.post(
           email,
           permission,
           sharedAt: new Date(),
-          sharedBy: req.user.userId,
+          sharedBy: req.user._id,
         });
       }
 
@@ -1001,7 +1001,7 @@ router.post(
 
       // Log the sharing activity
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_shared",
         targetType: "template",
         targetId: template._id,
@@ -1044,7 +1044,7 @@ router.delete(
 
       // Log the unsharing activity
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "template_unshared",
         targetType: "template",
         targetId: template._id,
