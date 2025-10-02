@@ -28,6 +28,8 @@ export const Contacts: React.FC = () => {
     contactName: string;
   }>({ isOpen: false, contactId: "", contactName: "" });
   const [exportModal, setExportModal] = useState<{ isOpen: boolean }>({ isOpen: false });
+  const [addContactOpen, setAddContactOpen] = useState(false);
+  const [editContactOpen, setEditContactOpen] = useState<{ open: boolean; contactId: string }>({ open: false, contactId: '' });
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -68,6 +70,7 @@ export const Contacts: React.FC = () => {
         listIds: newContact.lists || newContact.listIds || [],
       };
       setContacts((prev) => [...prev, mappedNewContact]);
+      setAddContactOpen(false); // Close the add dialog
     } catch (error) {
       console.error("Failed to create contact:", error);
       alert("Failed to create contact. Please try again.");
@@ -78,19 +81,25 @@ export const Contacts: React.FC = () => {
     contactData: Omit<Contact, "id" | "createdAt" | "updatedAt">,
     contactId: string
   ) => {
-    const apiClient = (await import("../utils/apiClient")).apiClient;
-    const updatedContact = await apiClient.updateContact(
-      contactId,
-      contactData
-    );
-    const mappedUpdatedContact = {
-      ...updatedContact,
-      id: updatedContact._id || updatedContact.id,
-      listIds: updatedContact.lists || updatedContact.listIds || [],
-    };
-    setContacts((prev) =>
-      prev.map((c) => (c.id === contactId ? mappedUpdatedContact : c))
-    );
+    try {
+      const apiClient = (await import("../utils/apiClient")).apiClient;
+      const updatedContact = await apiClient.updateContact(
+        contactId,
+        contactData
+      );
+      const mappedUpdatedContact = {
+        ...updatedContact,
+        id: updatedContact._id || updatedContact.id,
+        listIds: updatedContact.lists || updatedContact.listIds || [],
+      };
+      setContacts((prev) =>
+        prev.map((c) => (c.id === contactId ? mappedUpdatedContact : c))
+      );
+      setEditContactOpen({ open: false, contactId: '' }); // Close the edit dialog
+    } catch (error) {
+      console.error("Failed to update contact:", error);
+      alert("Failed to update contact. Please try again.");
+    }
   };
 
   const openDeleteModal = (contactId: string, contactName: string) => {
@@ -248,6 +257,8 @@ export const Contacts: React.FC = () => {
             </button>
             <ContactFormDialog
               onSave={handleSaveContact}
+              open={addContactOpen}
+              onOpenChange={setAddContactOpen}
               trigger={
                 <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                   <Plus className="h-4 w-4 mr-2" />
@@ -375,6 +386,14 @@ export const Contacts: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <ContactFormDialog
                           contact={contact}
+                          open={editContactOpen.open && editContactOpen.contactId === contact.id}
+                          onOpenChange={(open) => {
+                            if (open) {
+                              setEditContactOpen({ open: true, contactId: contact.id });
+                            } else {
+                              setEditContactOpen({ open: false, contactId: '' });
+                            }
+                          }}
                           onSave={(data) => {
                             console.log("Editing contact:", contact);
                             console.log("Contact ID:", contact.id);

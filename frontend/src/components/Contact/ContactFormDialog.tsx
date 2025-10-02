@@ -302,6 +302,28 @@ export function ContactFormDialog({
               type="button"
               variant="outline"
               onClick={() => {
+                // Reset form to original state when canceling
+                if (contact) {
+                  setFormData({
+                    email: contact.email || '',
+                    firstName: contact.firstName || '',
+                    lastName: contact.lastName || '',
+                    tags: contact.tags || [],
+                    customFields: contact.customFields || {},
+                    status: contact.status || 'active',
+                    listIds: contact.listIds || [],
+                  })
+                } else {
+                  setFormData({
+                    email: '',
+                    firstName: '',
+                    lastName: '',
+                    tags: [],
+                    customFields: {},
+                    status: 'active',
+                    listIds: [],
+                  })
+                }
                 onCancel?.()
                 onOpenChange?.(false)
               }}

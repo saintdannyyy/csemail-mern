@@ -19,7 +19,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Get user from database
     const user = await User.findOne({ _id: decoded.userId });
-    console.log("User found:", user);
+    // console.log("User found:", user);
 
     if (!user) {
       return res.status(403).json({ error: "Invalid or expired token" });

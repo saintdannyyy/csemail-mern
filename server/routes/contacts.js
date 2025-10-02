@@ -196,7 +196,7 @@ router.put(
         }
       ).populate("lists", "name");
 
-      console.log("Updated Contact:", updatedContact);
+      // console.log("Updated Contact:", updatedContact);
 
       // Log audit event
       await AuditLog.create({
@@ -362,10 +362,15 @@ router.post(
       // Parse file based on extension
       if (file.originalname.endsWith(".csv")) {
         // Parse CSV
+        console.log("file is csv");
         const results = [];
+        // console.log(results);
         fs.createReadStream(file.path)
           .pipe(csv())
-          .on("data", (data) => results.push(data))
+          .on("data", (data) => {
+            console.log("CSV Row:", data);
+            results.push(data);
+          })
           .on("end", async () => {
             await processContacts(results);
           });
@@ -374,6 +379,7 @@ router.post(
         file.originalname.endsWith(".xls")
       ) {
         // Parse Excel
+        console.log("file is excel");
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
@@ -393,8 +399,18 @@ router.post(
             const email = row[mappingObj.email || "email"];
             const firstName = row[mappingObj.firstName || "first_name"];
             const lastName = row[mappingObj.lastName || "last_name"];
+            // const phone = row[mappingObj.phone || "phone"];
+            const company = row[mappingObj.company || "company"];
+            const position = row[mappingObj.position || "position"];
 
             if (!email || !email.includes("@")) {
+              errors.push(`Row ${processed}: Invalid email`);
+              skipped++;
+              continue;
+            }
+            if (email && email.includes("@")) {
+              console.log("Processing email:", email);
+            } else {
               errors.push(`Row ${processed}: Invalid email`);
               skipped++;
               continue;
@@ -416,14 +432,21 @@ router.post(
               firstName,
               lastName,
               status: "active",
-              customFields: row,
+              // customFields: row,
               lists: listId ? [listId] : [],
-              createdBy: req.user.userId,
+              customFields: { company, position },
+              createdBy: req.user._id,
             });
 
             await contact.save();
 
-            imported++;
+            if(!contact) {
+              console.log("Failed to import contact:", email);
+            } else {
+              console.log("Imported Contact:", contact.email);
+              
+            }
+
           } catch (error) {
             errors.push(`Row ${processed}: ${error.message}`);
             skipped++;
