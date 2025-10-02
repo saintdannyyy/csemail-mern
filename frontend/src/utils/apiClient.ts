@@ -30,16 +30,42 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
-
+    console.log('API Request:', { url, method: options.method, hasBody: !!options.body, bodyType: options.body?.constructor.name });
+    
     // Use a plain object for headers to allow custom keys
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
+
+    // Only add Content-Type if it's not FormData (FormData sets its own Content-Type)
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     // Add auth token if available
     if (this.token) {
       headers["authorization"] = `Bearer ${this.token}`;
+    }
+
+    console.log('Request headers:', headers);
+    
+    // Log FormData contents if it's FormData
+    if (options.body instanceof FormData) {
+      console.log('FormData entries being sent:');
+      for (let [key, value] of options.body.entries()) {
+        if (value instanceof File) {
+          console.log(`${key}:`, {
+            name: value.name,
+            size: value.size,
+            type: value.type,
+            lastModified: value.lastModified
+          });
+        } else {
+          console.log(`${key}:`, value);
+        }
+      }
+    } else {
+      console.log('Request body type:', options.body?.constructor.name);
     }
 
     const config: RequestInit = {
@@ -50,12 +76,25 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
       
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
+        }
+        
+        throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Success response:', result);
+      return result;
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);
       throw error;
@@ -71,7 +110,7 @@ class ApiClient {
   async post<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
     });
   }
 
@@ -79,7 +118,7 @@ class ApiClient {
   async put<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
     });
   }
 
@@ -122,6 +161,45 @@ class ApiClient {
 
   async createContact(contact: any): Promise<any> {
     return this.post('/api/contacts', contact);
+  }
+
+  async updateContact(contactId: string, contact: any): Promise<any> {
+    return this.put(`/api/contacts/${contactId}`, contact);
+  }
+  async deleteContact(contactId: string): Promise<any> {
+    return this.delete(`/api/contacts/${contactId}`);
+  }
+
+  // Import contacts method - make sure this exists and is correctly named
+  async importContacts(formData: FormData): Promise<any> {
+    return this.post('/api/contacts/import', formData);
+  }
+
+  // Export contacts method
+  async exportContacts(options: {
+    format: string;
+    includeFields: string[];
+    filterType: string;
+  }): Promise<Blob> {
+    const params = new URLSearchParams({
+      format: options.format,
+      fields: options.includeFields.join(','),
+      filterType: options.filterType,
+    });
+
+    const response = await fetch(`${this.baseURL}/api/contacts/export?${params}`, {
+      method: 'GET',
+      headers: {
+        ...(this.token && { authorization: `Bearer ${this.token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return response.blob();
   }
 
   // Campaign methods

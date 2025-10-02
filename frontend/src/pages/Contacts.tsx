@@ -11,6 +11,10 @@ import {
   Tag,
 } from "lucide-react";
 import { Contact } from "../types";
+import { ContactFormDialog } from "../components/Contact/ContactFormDialog";
+import { ImportContactsModal } from "../components/Contact/ImportContactsModal";
+import { DeleteContactModal } from "../components/Contact/DeleteContactModal";
+import { ExportContactsModal, ExportOptions } from "../components/Contact/ExportContactsModal";
 
 export const Contacts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,6 +22,12 @@ export const Contacts: React.FC = () => {
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    contactId: string;
+    contactName: string;
+  }>({ isOpen: false, contactId: "", contactName: "" });
+  const [exportModal, setExportModal] = useState<{ isOpen: boolean }>({ isOpen: false });
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -27,7 +37,15 @@ export const Contacts: React.FC = () => {
           await import("../utils/apiClient")
         ).apiClient.getContacts(1, 100);
         // response.contacts is array, response.pagination is object
-        setContacts(response && response.contacts ? response.contacts : []);
+        const mappedContacts =
+          response && response.contacts
+            ? response.contacts.map((contact: any) => ({
+                ...contact,
+                id: contact._id || contact.id,
+                listIds: contact.lists || contact.listIds || [],
+              }))
+            : [];
+        setContacts(mappedContacts);
       } catch (error) {
         console.error("Failed to fetch contacts:", error);
       } finally {
@@ -36,6 +54,140 @@ export const Contacts: React.FC = () => {
     };
     fetchContacts();
   }, []);
+
+  const handleSaveContact = async (
+    contactData: Omit<Contact, "id" | "createdAt" | "updatedAt">
+  ) => {
+    try {
+      const apiClient = (await import("../utils/apiClient")).apiClient;
+      console.log("Contact Data:", contactData);
+      const newContact = await apiClient.createContact(contactData);
+      const mappedNewContact = {
+        ...newContact,
+        id: newContact._id || newContact.id,
+        listIds: newContact.lists || newContact.listIds || [],
+      };
+      setContacts((prev) => [...prev, mappedNewContact]);
+    } catch (error) {
+      console.error("Failed to create contact:", error);
+      alert("Failed to create contact. Please try again.");
+    }
+  };
+
+  const handleEditContact = async (
+    contactData: Omit<Contact, "id" | "createdAt" | "updatedAt">,
+    contactId: string
+  ) => {
+    const apiClient = (await import("../utils/apiClient")).apiClient;
+    const updatedContact = await apiClient.updateContact(
+      contactId,
+      contactData
+    );
+    const mappedUpdatedContact = {
+      ...updatedContact,
+      id: updatedContact._id || updatedContact.id,
+      listIds: updatedContact.lists || updatedContact.listIds || [],
+    };
+    setContacts((prev) =>
+      prev.map((c) => (c.id === contactId ? mappedUpdatedContact : c))
+    );
+  };
+
+  const openDeleteModal = (contactId: string, contactName: string) => {
+    setDeleteModal({ isOpen: true, contactId, contactName });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, contactId: "", contactName: "" });
+  };
+
+  const handleDeleteContact = async () => {
+    try {
+      const apiClient = (await import("../utils/apiClient")).apiClient;
+      await apiClient.deleteContact(deleteModal.contactId);
+      
+      // Remove contact from state
+      setContacts((prev) => prev.filter((c) => c.id !== deleteModal.contactId));
+      
+      console.log(`Successfully deleted contact: ${deleteModal.contactName}`);
+    } catch (error) {
+      console.error("Failed to delete contact:", error);
+      alert("Failed to delete contact. Please try again.");
+      throw error; // Re-throw to let modal handle the error state
+    }
+  };
+
+  const openExportModal = () => {
+    setExportModal({ isOpen: true });
+  };
+
+  const closeExportModal = () => {
+    setExportModal({ isOpen: false });
+  };
+
+  const handleExportContacts = async (options: ExportOptions) => {
+    try {
+      const apiClient = (await import("../utils/apiClient")).apiClient;
+      const blob = await apiClient.exportContacts(options);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Set filename based on format
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `contacts_${timestamp}.${options.format}`;
+      link.setAttribute('download', filename);
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`Successfully exported contacts as ${options.format}`);
+    } catch (error) {
+      console.error("Failed to export contacts:", error);
+      alert("Failed to export contacts. Please try again.");
+      throw error;
+    }
+  };
+
+  const handleImportContacts = async (file: File) => {
+    try {
+      const apiClient = (await import("../utils/apiClient")).apiClient;
+
+      // Create FormData to send the file
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Use the correct method name: importContacts (not importContact)
+      const result = await apiClient.importContacts(formData);
+
+      // Refresh the contacts list
+      const updatedResponse = await apiClient.getContacts(1, 100);
+      const mappedUpdatedContacts =
+        updatedResponse && updatedResponse.contacts
+          ? updatedResponse.contacts.map((contact: any) => ({
+              ...contact,
+              id: contact._id || contact.id,
+              listIds: contact.lists || contact.listIds || [],
+            }))
+          : [];
+      setContacts(mappedUpdatedContacts);
+
+      console.log(`Successfully imported ${result.importedCount} contacts`);
+
+      // Return the result so the modal can access it
+      return result;
+    } catch (error) {
+      console.error("Failed to import contacts:", error);
+      throw error; // Re-throw to let the modal handle the error display
+    }
+  };
 
   const filteredContacts = contacts.filter((contact) => {
     const matchesSearch =
@@ -78,18 +230,31 @@ export const Contacts: React.FC = () => {
             </p>
           </div>
           <div className="flex space-x-3">
-            <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              <Upload className="h-4 w-4 mr-2" />
-              Import
-            </button>
-            <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <ImportContactsModal
+              onImport={handleImportContacts}
+              trigger={
+                <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import
+                </button>
+              }
+            />
+            <button 
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={openExportModal}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </button>
-            <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Contact
-            </button>
+            <ContactFormDialog
+              onSave={handleSaveContact}
+              trigger={
+                <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Contact
+                </button>
+              }
+            />
           </div>
         </div>
       </div>
@@ -208,10 +373,24 @@ export const Contacts: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-900">
+                        <ContactFormDialog
+                          contact={contact}
+                          onSave={(data) => {
+                            console.log("Editing contact:", contact);
+                            console.log("Contact ID:", contact.id);
+                            handleEditContact(data, contact.id);
+                          }}
+                          trigger={
+                            <button className="text-blue-600 hover:text-blue-900">
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          }
+                        />
+                        <button 
+                          className="text-red-600 hover:text-red-900"
+                          onClick={() => openDeleteModal(contact.id, `${contact.firstName} ${contact.lastName}`)}
+                          title="Delete contact"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                         <button className="text-gray-400 hover:text-gray-600">
@@ -226,6 +405,23 @@ export const Contacts: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Delete Contact Modal */}
+      <DeleteContactModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteContact}
+        contactName={deleteModal.contactName}
+      />
+
+      {/* Export Contacts Modal */}
+      <ExportContactsModal
+        isOpen={exportModal.isOpen}
+        onClose={closeExportModal}
+        onExport={handleExportContacts}
+        totalContacts={contacts.length}
+        filteredContacts={filteredContacts.length !== contacts.length ? filteredContacts.length : undefined}
+      />
     </div>
   );
 };

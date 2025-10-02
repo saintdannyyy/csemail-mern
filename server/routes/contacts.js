@@ -80,74 +80,259 @@ router.post(
         customFields = {},
         listIds = [],
       } = req.body;
+      console.log("Request Body:", req.body);
 
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
 
+      // Check if contact already exists
+      const existingContact = await Contact.findOne({
+        email: email.toLowerCase(),
+      });
+
+      if (existingContact) {
+        return res
+          .status(409)
+          .json({ error: "Contact with this email already exists" });
+      }
+
       // Create contact
-      router.post(
-        "/",
-        authenticateToken,
-        requireRole(["admin", "editor"]),
-        async (req, res) => {
-          try {
-            const {
-              email,
-              firstName,
-              lastName,
-              tags = [],
-              customFields = {},
-              listIds = [],
-            } = req.body;
+      const contact = new Contact({
+        email: email.toLowerCase(),
+        firstName,
+        lastName,
+        // tags,
+        customFields,
+        status: "active",
+        // lists: listIds,
+        createdBy: req.user._id,
+      });
 
-            if (!email) {
-              return res.status(400).json({ error: "Email is required" });
-            }
+      await contact.save();
+      console.log("Created Contact:", contact);
 
-            // Check if contact already exists
-            const existingContact = await Contact.findOne({
-              email: email.toLowerCase(),
-            });
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contact_created",
+        targetType: "contact",
+        targetId: contact._id,
+      });
 
-            if (existingContact) {
-              return res
-                .status(409)
-                .json({ error: "Contact with this email already exists" });
-            }
-
-            // Create contact
-            const contact = new Contact({
-              email: email.toLowerCase(),
-              firstName,
-              lastName,
-              tags,
-              customFields,
-              status: "active",
-              lists: listIds,
-              createdBy: req.user.userId,
-            });
-
-            await contact.save();
-
-            // Log audit event
-            await AuditLog.create({
-              userId: req.user.userId,
-              action: "contact_created",
-              targetType: "contact",
-              targetId: contact._id,
-            });
-
-            res.status(201).json(contact);
-          } catch (error) {
-            console.error("Create contact error:", error);
-            res.status(500).json({ error: "Failed to create contact" });
-          }
-        }
-      );
+      res.status(201).json(contact);
     } catch (error) {
       console.error("Create contact error:", error);
       res.status(500).json({ error: "Failed to create contact" });
+    }
+  }
+);
+
+// Update contact
+router.put(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const {
+        email,
+        firstName,
+        lastName,
+        tags = [],
+        customFields = {},
+        status,
+        listIds = [],
+      } = req.body;
+
+      console.log("Update Contact Request:", { id, body: req.body });
+
+      // Validate contact ID
+      if (!id) {
+        return res.status(400).json({ error: "Contact ID is required" });
+      }
+
+      // Find existing contact
+      const existingContact = await Contact.findById(id);
+      if (!existingContact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      // If email is being updated, check for duplicates
+      if (email && email.toLowerCase() !== existingContact.email) {
+        const emailExists = await Contact.findOne({
+          email: email.toLowerCase(),
+          _id: { $ne: id }
+        });
+
+        if (emailExists) {
+          return res.status(409).json({ 
+            error: "Contact with this email already exists" 
+          });
+        }
+      }
+
+      // Prepare update data
+      const updateData = {
+        ...(email && { email: email.toLowerCase() }),
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(tags && { tags }),
+        ...(customFields && { customFields }),
+        ...(status && { status }),
+        ...(listIds && { lists: listIds }),
+        updatedAt: new Date(),
+        updatedBy: req.user._id,
+      };
+
+      // Update contact
+      const updatedContact = await Contact.findByIdAndUpdate(
+        id,
+        updateData,
+        { 
+          new: true, // Return updated document
+          runValidators: true // Run schema validators
+        }
+      ).populate("lists", "name");
+
+      console.log("Updated Contact:", updatedContact);
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contact_updated",
+        targetType: "contact",
+        targetId: updatedContact._id,
+        details: {
+          changes: updateData,
+          previousValues: {
+            email: existingContact.email,
+            firstName: existingContact.firstName,
+            lastName: existingContact.lastName,
+            status: existingContact.status,
+          }
+        }
+      });
+
+      res.json(updatedContact);
+    } catch (error) {
+      console.error("Update contact error:", error);
+      
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+        const validationErrors = Object.values(error.errors).map(err => err.message);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationErrors 
+        });
+      }
+
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === 'CastError') {
+        return res.status(400).json({ error: "Invalid contact ID format" });
+      }
+
+      res.status(500).json({ error: "Failed to update contact" });
+    }
+  }
+);
+
+// Delete contact
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      console.log("Delete Contact Request:", { id });
+
+      // Validate contact ID
+      if (!id) {
+        return res.status(400).json({ error: "Contact ID is required" });
+      }
+
+      // Find and delete contact
+      const deletedContact = await Contact.findByIdAndDelete(id);
+      
+      if (!deletedContact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      console.log("Deleted Contact:", deletedContact._id);
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contact_deleted",
+        targetType: "contact",
+        targetId: deletedContact._id,
+        details: {
+          deletedContact: {
+            email: deletedContact.email,
+            firstName: deletedContact.firstName,
+            lastName: deletedContact.lastName,
+          }
+        }
+      });
+
+      res.json({ 
+        message: "Contact deleted successfully",
+        deletedContact: {
+          id: deletedContact._id,
+          email: deletedContact.email,
+          firstName: deletedContact.firstName,
+          lastName: deletedContact.lastName,
+        }
+      });
+    } catch (error) {
+      console.error("Delete contact error:", error);
+      
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === 'CastError') {
+        return res.status(400).json({ error: "Invalid contact ID format" });
+      }
+
+      res.status(500).json({ error: "Failed to delete contact" });
+    }
+  }
+);
+
+// Get single contact
+router.get(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor", "viewer"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      console.log("Get Contact Request:", { id });
+
+      // Validate contact ID
+      if (!id) {
+        return res.status(400).json({ error: "Contact ID is required" });
+      }
+
+      // Find contact
+      const contact = await Contact.findById(id).populate("lists", "name");
+      
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      res.json(contact);
+    } catch (error) {
+      console.error("Get contact error:", error);
+      
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === 'CastError') {
+        return res.status(400).json({ error: "Invalid contact ID format" });
+      }
+
+      res.status(500).json({ error: "Failed to fetch contact" });
     }
   }
 );
@@ -162,6 +347,7 @@ router.post(
     try {
       const { listId, mapping } = req.body;
       const file = req.file;
+      // console.log("Uploaded File:", file);
 
       if (!file) {
         return res.status(400).json({ error: "File is required" });
@@ -249,7 +435,7 @@ router.post(
 
         // Log audit event
         await AuditLog.create({
-          userId: req.user.userId,
+          userId: req.user._id,
           action: "contacts_imported",
           targetType: "contact",
           details: { processed, imported, skipped, errors: errors.length },
@@ -264,6 +450,8 @@ router.post(
             errors: errors.length,
           },
           errors: errors.slice(0, 10), // Return first 10 errors
+          importedCount: imported, // Add this for frontend compatibility
+          totalCount: processed,
         });
       }
     } catch (error) {
@@ -351,6 +539,139 @@ router.post(
     } catch (error) {
       console.error("Create list error:", error);
       res.status(500).json({ error: "Failed to create list" });
+    }
+  }
+);
+
+// Export contacts
+router.get(
+  "/export",
+  authenticateToken,
+  requireRole(["admin", "editor", "viewer"]),
+  async (req, res) => {
+    try {
+      const { 
+        format = 'csv', 
+        fields = 'firstName,lastName,email,phone,company,position,tags,status,createdAt',
+        filterType = 'all'
+      } = req.query;
+
+      console.log("Export Contacts Request:", { format, fields, filterType });
+
+      // Parse fields
+      const includeFields = fields.split(',').filter(field => field.trim());
+      
+      // Build query based on filterType
+      let query = {};
+      // For now, we'll export all contacts. In the future, you can add filter logic here
+      
+      // Fetch contacts
+      const contacts = await Contact.find(query).sort({ createdAt: -1 });
+      
+      if (!contacts || contacts.length === 0) {
+        return res.status(404).json({ error: "No contacts found" });
+      }
+
+      console.log(`Exporting ${contacts.length} contacts in ${format} format`);
+
+      // Map contacts to include only requested fields
+      const mappedContacts = contacts.map(contact => {
+        const contactObj = {};
+        
+        includeFields.forEach(field => {
+          switch (field.trim()) {
+            case 'firstName':
+              contactObj['First Name'] = contact.firstName || '';
+              break;
+            case 'lastName':
+              contactObj['Last Name'] = contact.lastName || '';
+              break;
+            case 'email':
+              contactObj['Email'] = contact.email || '';
+              break;
+            case 'phone':
+              contactObj['Phone'] = contact.phone || '';
+              break;
+            case 'company':
+              contactObj['Company'] = contact.customFields?.company || '';
+              break;
+            case 'position':
+              contactObj['Position'] = contact.customFields?.position || '';
+              break;
+            case 'tags':
+              contactObj['Tags'] = contact.tags ? contact.tags.join(', ') : '';
+              break;
+            case 'status':
+              contactObj['Status'] = contact.status || '';
+              break;
+            case 'createdAt':
+              contactObj['Date Added'] = contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : '';
+              break;
+            case 'lastActivity':
+              contactObj['Last Activity'] = contact.lastActivity ? new Date(contact.lastActivity).toLocaleDateString() : '';
+              break;
+          }
+        });
+        
+        return contactObj;
+      });
+
+      // Generate export based on format
+      if (format === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=contacts_${Date.now()}.json`);
+        return res.json(mappedContacts);
+      } 
+      else if (format === 'csv') {
+        // Generate CSV
+        const csv = require('csv-parser');
+        let csvContent = '';
+        
+        // Headers
+        if (mappedContacts.length > 0) {
+          csvContent = Object.keys(mappedContacts[0]).join(',') + '\n';
+          
+          // Data rows
+          mappedContacts.forEach(contact => {
+            const row = Object.values(contact).map(value => {
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',');
+            csvContent += row + '\n';
+          });
+        }
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=contacts_${Date.now()}.csv`);
+        return res.send(csvContent);
+      }
+      else if (format === 'xlsx') {
+        const XLSX = require('xlsx');
+        
+        // Create workbook and worksheet
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(mappedContacts);
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Contacts');
+        
+        // Generate Excel file buffer
+        const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=contacts_${Date.now()}.xlsx`);
+        return res.send(excelBuffer);
+      }
+      else {
+        return res.status(400).json({ error: "Unsupported export format" });
+      }
+
+    } catch (error) {
+      console.error("Export contacts error:", error);
+      res.status(500).json({ error: "Failed to export contacts" });
     }
   }
 );
