@@ -106,6 +106,8 @@ router.get("/library", authenticateToken, async (req, res) => {
       result = await getAllPredefinedTemplates();
     }
 
+    console.log("Library result:", result); // Debug log
+
     if (result.success) {
       let templates;
 
@@ -114,8 +116,14 @@ router.get("/library", authenticateToken, async (req, res) => {
         templates = result.templates;
       } else {
         // All templates request returns grouped object, flatten it
-        templates = Object.values(result.templates).flat();
+        if (Array.isArray(result.templates)) {
+          templates = result.templates;
+        } else {
+          templates = Object.values(result.templates).flat();
+        }
       }
+
+      console.log("Templates to map:", templates.length); // Debug log
 
       // Map content to htmlContent for frontend compatibility
       const mappedTemplates = templates.map((template) => {
@@ -123,8 +131,10 @@ router.get("/library", authenticateToken, async (req, res) => {
         templateObj.htmlContent = templateObj.content;
         return templateObj;
       });
+
       res.json(mappedTemplates);
     } else {
+      console.error("Library error:", result.error); // Debug log
       res.status(500).json({ error: result.error });
     }
   } catch (error) {
