@@ -17,7 +17,6 @@ interface EmailBlockProps {
 
 export const EmailBlock = ({
   id,
-  index,
   type,
   children,
   onEdit,
