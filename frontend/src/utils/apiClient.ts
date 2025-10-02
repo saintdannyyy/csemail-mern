@@ -21,6 +21,30 @@ class ApiClient {
   clearToken() {
     this.token = null;
     localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+  }
+
+  // Check if user is authenticated with valid token
+  isAuthenticated(): boolean {
+    if (!this.token) return false;
+
+    try {
+      // Basic JWT token validation (check if it's properly formatted and not expired)
+      const payload = JSON.parse(atob(this.token.split('.')[1]));
+      const now = Date.now() / 1000;
+      
+      if (payload.exp && payload.exp < now) {
+        console.warn('Token has expired');
+        this.clearToken();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Invalid token format:', error);
+      this.clearToken();
+      return false;
+    }
   }
 
   // Generic request method
@@ -87,6 +111,17 @@ class ApiClient {
           errorData = JSON.parse(errorText);
         } catch {
           errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
+        }
+        
+        // Handle authentication errors - redirect to login
+        if (response.status === 401) {
+          console.warn('Authentication failed - token expired or invalid');
+          this.clearToken();
+          // Only redirect if not already on login page
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          throw new Error('Authentication expired. Please log in again.');
         }
         
         throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
