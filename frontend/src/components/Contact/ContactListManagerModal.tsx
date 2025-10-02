@@ -74,7 +74,7 @@ export const ContactListManagerModal: React.FC<
 
       if (editingList) {
         // Update existing list
-        const updatedList = await (
+        await (
           await import("../../utils/apiClient")
         ).apiClient.updateContactList(editingList._id, formData);
 
