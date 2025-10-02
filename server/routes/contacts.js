@@ -97,15 +97,30 @@ router.post(
           .json({ error: "Contact with this email already exists" });
       }
 
+      // Parse tags if they come as a string
+      let parsedTags = [];
+      if (tags) {
+        if (typeof tags === 'string') {
+          try {
+            parsedTags = JSON.parse(tags);
+          } catch (e) {
+            // If parsing fails, treat as comma-separated string
+            parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+          }
+        } else if (Array.isArray(tags)) {
+          parsedTags = tags;
+        }
+      }
+
       // Create contact
       const contact = new Contact({
         email: email.toLowerCase(),
         firstName,
         lastName,
-        // tags,
+        tags:["order", "confirmation", "receipt", "newsletter", "promotion", "ecommerce"],
         customFields,
         status: "active",
-        // lists: listIds,
+        lists: listIds,
         createdBy: req.user._id,
       });
 
@@ -173,12 +188,25 @@ router.put(
         }
       }
 
+      // Parse tags if they come as a string
+      let parsedTags = tags;
+      if (tags) {
+        if (typeof tags === 'string') {
+          try {
+            parsedTags = JSON.parse(tags);
+          } catch (e) {
+            // If parsing fails, treat as comma-separated string
+            parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+          }
+        }
+      }
+
       // Prepare update data
       const updateData = {
         ...(email && { email: email.toLowerCase() }),
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
-        ...(tags && { tags }),
+        ...(tags !== undefined && { tags: parsedTags }),
         ...(customFields && { customFields }),
         ...(status && { status }),
         ...(listIds && { lists: listIds }),
@@ -192,7 +220,7 @@ router.put(
         runValidators: true, // Run schema validators
       }).populate("lists", "name");
 
-      console.log("Updated Contact:", updatedContact);
+      // console.log("Updated Contact:", updatedContact);
 
       // Log audit event
       await AuditLog.create({
@@ -391,18 +419,30 @@ router.post(
       // Parse file based on extension
       if (file.originalname.endsWith(".csv")) {
         // Parse CSV
+        console.log("file is csv");
         const results = [];
-        fs.createReadStream(file.path)
-          .pipe(csv())
-          .on("data", (data) => results.push(data))
-          .on("end", async () => {
-            await processContacts(results);
-          });
+        
+        await new Promise((resolve, reject) => {
+          fs.createReadStream(file.path)
+            .pipe(csv())
+            .on("data", (data) => {
+              console.log("CSV Row:", data);
+              results.push(data);
+            })
+            .on("end", () => {
+              console.log("CSV parsing completed, total rows:", results.length);
+              resolve();
+            })
+            .on("error", reject);
+        });
+        
+        await processContacts(results);
       } else if (
         file.originalname.endsWith(".xlsx") ||
         file.originalname.endsWith(".xls")
       ) {
         // Parse Excel
+        console.log("file is excel");
         const workbook = XLSX.readFile(file.path);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
@@ -419,15 +459,29 @@ router.post(
           processed++;
 
           try {
-            const email = row[mappingObj.email || "email"];
-            const firstName = row[mappingObj.firstName || "first_name"];
-            const lastName = row[mappingObj.lastName || "last_name"];
+            // Extract fields with proper fallbacks
+            const email = row[mappingObj.email || "email"] || row["Email"] || row["EMAIL"];
+            let firstName = row[mappingObj.firstName || "firstName"] || row["First Name"] || row["first_name"] || row["FIRST_NAME"];
+            let lastName = row[mappingObj.lastName || "lastName"] || row["Last Name"] || row["last_name"] || row["LAST_NAME"];
+            const company = row[mappingObj.company || "company"] || row["Company"] || row["COMPANY"];
+            const position = row[mappingObj.position || "position"] || row["Position"] || row["POSITION"];
 
+            // Validate email
             if (!email || !email.includes("@")) {
-              errors.push(`Row ${processed}: Invalid email`);
+              errors.push(`Row ${processed}: Invalid or missing email`);
               skipped++;
               continue;
             }
+
+            // Handle missing required fields
+            if (!firstName) {
+              firstName = "Unknown";
+            }
+            if (!lastName) {
+              lastName = "Contact";
+            }
+
+            console.log("Processing email:", email);
 
             // Check if contact exists
             const existingContact = await Contact.findOne({
@@ -435,25 +489,38 @@ router.post(
             });
 
             if (existingContact) {
+              console.log("Contact already exists, skipping:", email);
               skipped++;
-              continue;
+              continue; // Add continue to skip to next iteration
             }
 
             // Create contact
             const contact = new Contact({
               email: email.toLowerCase(),
-              firstName,
-              lastName,
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
               status: "active",
-              customFields: row,
               lists: listId ? [listId] : [],
-              createdBy: req.user.userId,
+              customFields: {
+                ...(company && { company: company.trim() }),
+                ...(position && { position: position.trim() })
+              },
+              createdBy: req.user._id,
             });
 
-            await contact.save();
+            const savedContact = await contact.save();
+            
+            if (savedContact) {
+              console.log("Successfully imported contact:", savedContact.email);
+              imported++; // Increment the imported counter
+            } else {
+              console.log("Failed to save contact:", email);
+              errors.push(`Row ${processed}: Failed to save contact`);
+              skipped++;
+            }
 
-            imported++;
           } catch (error) {
+            console.error(`Error processing row ${processed}:`, error.message);
             errors.push(`Row ${processed}: ${error.message}`);
             skipped++;
           }
