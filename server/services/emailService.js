@@ -1,29 +1,73 @@
 const nodemailer = require("nodemailer");
 const Template = require("../models/Template");
 const AuditLog = require("../models/AuditLog");
+const Settings = require("../models/Settings");
 
 class EmailService {
   constructor() {
-    // Configure SMTP transporter
-    this.transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      // Additional SMTP options
-      tls: {
-        rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
-      },
-      connectionTimeout: 60000, // 60 seconds
-      greetingTimeout: 30000, // 30 seconds
-      socketTimeout: 60000, // 60 seconds
-    });
+    this.transporter = null;
+    this.initializeTransporter();
+  }
 
-    // Verify SMTP connection on startup
-    this.verifyConnection();
+  /**
+   * Initialize SMTP transporter with database settings or environment fallback
+   */
+  async initializeTransporter() {
+    try {
+      // Try to get settings from database first
+      const settings = await Settings.findOne();
+
+      const smtpConfig = {
+        host: settings?.smtpHost || process.env.SMTP_HOST,
+        port: parseInt(settings?.smtpPort || process.env.SMTP_PORT) || 587,
+        secure:
+          settings?.smtpSecure !== undefined
+            ? settings.smtpSecure
+            : process.env.SMTP_SECURE === "true",
+        auth: {
+          user: settings?.smtpUser || process.env.SMTP_USER,
+          pass: settings?.smtpPassword || process.env.SMTP_PASS,
+        },
+        // Additional SMTP options
+        tls: {
+          rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
+        },
+        connectionTimeout: 60000, // 60 seconds
+        greetingTimeout: 30000, // 30 seconds
+        socketTimeout: 60000, // 60 seconds
+      };
+
+      // Configure SMTP transporter
+      this.transporter = nodemailer.createTransport(smtpConfig);
+
+      // Verify SMTP connection on startup
+      this.verifyConnection();
+    } catch (error) {
+      console.error("Failed to initialize SMTP transporter:", error);
+      // Fallback to environment variables only
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === "true",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+        tls: {
+          rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
+        },
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+      });
+    }
+  }
+
+  /**
+   * Refresh transporter configuration (call when settings are updated)
+   */
+  async refreshTransporter() {
+    await this.initializeTransporter();
   }
 
   /**
