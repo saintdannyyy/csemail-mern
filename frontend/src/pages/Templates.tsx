@@ -109,15 +109,13 @@ export const Templates: React.FC = () => {
   const handleCopyTemplate = async (template: EmailTemplate) => {
     try {
       const { apiClient } = await import("../utils/apiClient");
+      // Create new template by destructuring to exclude certain fields
+      const { id, _id, createdAt, updatedAt, ...templateData } = template;
       const newTemplate = {
-        ...template,
+        ...templateData,
         name: `${template.name} (Copy)`,
         isDefault: false,
       };
-      delete newTemplate.id;
-      delete newTemplate._id;
-      delete newTemplate.createdAt;
-      delete newTemplate.updatedAt;
 
       const created = await apiClient.createTemplate(newTemplate);
       await fetchTemplates(); // Refresh the list
@@ -396,7 +394,7 @@ export const Templates: React.FC = () => {
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>
                         Created{" "}
-                        {new Date(template.createdAt).toLocaleDateString()}
+                        {template.createdAt ? new Date(template.createdAt).toLocaleDateString() : 'Unknown'}
                       </span>
                       <div className="flex items-center space-x-2">
                         <button
@@ -524,7 +522,7 @@ export const Templates: React.FC = () => {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(template.createdAt).toLocaleDateString()}
+                            {template.createdAt ? new Date(template.createdAt).toLocaleDateString() : 'Unknown'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center space-x-2">
@@ -659,7 +657,7 @@ export const Templates: React.FC = () => {
                     value={editingTemplate.category || "other"}
                     onChange={(e) =>
                       setEditingTemplate((prev) =>
-                        prev ? { ...prev, category: e.target.value } : null
+                        prev ? { ...prev, category: e.target.value as EmailTemplate['category'] } : null
                       )
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -829,9 +827,9 @@ export const Templates: React.FC = () => {
                           Created:
                         </span>
                         <p className="text-sm text-gray-900 mt-1">
-                          {new Date(
+                          {viewingTemplate.createdAt ? new Date(
                             viewingTemplate.createdAt
-                          ).toLocaleDateString()}
+                          ).toLocaleDateString() : 'Unknown'}
                         </p>
                       </div>
                       <div>
@@ -839,9 +837,9 @@ export const Templates: React.FC = () => {
                           Last Modified:
                         </span>
                         <p className="text-sm text-gray-900 mt-1">
-                          {new Date(
+                          {viewingTemplate.updatedAt ? new Date(
                             viewingTemplate.updatedAt
-                          ).toLocaleDateString()}
+                          ).toLocaleDateString() : 'Unknown'}
                         </p>
                       </div>
                       {viewingTemplate.isDefault && (
