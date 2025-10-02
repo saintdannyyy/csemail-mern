@@ -23,8 +23,9 @@
     /* Path mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/components/*": ["./components/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "components"]
 }
