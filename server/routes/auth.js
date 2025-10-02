@@ -23,7 +23,7 @@ router.post("/login", async (req, res) => {
       const token = jwt.sign(
         { userId: user._id, email: user.email, role: user.role },
         process.env.JWT_SECRET || "your-secret-key",
-        { expiresIn: "24h" }
+        { expiresIn: process.env.JWT_EXPIRES_IN || "24h" }
       );
       res.json({
         token,
@@ -38,6 +38,8 @@ router.post("/login", async (req, res) => {
           lastLoginAt: user.lastLoginAt || null,
         },
       });
+    } else {
+      return res.status(401).json({ error: "Invalid email or password" });
     }
   } catch (error) {
     console.error("Login error:", error);
