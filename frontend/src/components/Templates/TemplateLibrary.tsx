@@ -105,8 +105,8 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
         content: template.content,
         category: template.category,
         description: `Copy of ${template.name}`,
-        tags: template.tags,
-        variables: template.variables,
+        tags: template.tags || [],
+        variables: template.variables || [],
       };
 
       const clonedTemplate = await apiClient.createTemplate(templateData);
@@ -121,9 +121,10 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
     return allTemplates.filter(
       (template) =>
         template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        template.tags.some((tag) =>
+        (template.tags?.some((tag) =>
           tag.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        ) ??
+          false)
     );
   };
 
@@ -150,7 +151,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
         </div>
 
         <div className="flex flex-wrap gap-1 mb-3">
-          {template.tags.slice(0, 3).map((tag, index) => (
+          {template.tags?.slice(0, 3).map((tag, index) => (
             <span
               key={index}
               className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
@@ -159,7 +160,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
               {tag}
             </span>
           ))}
-          {template.tags.length > 3 && (
+          {template.tags && template.tags.length > 3 && (
             <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
               +{template.tags.length - 3} more
             </span>
@@ -169,15 +170,15 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
         <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
           <div className="flex items-center gap-1">
             <User className="w-3 h-3" />
-            <span>{template.metadata.difficulty}</span>
+            <span>{template.metadata?.difficulty || "Easy"}</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            <span>{template.metadata.estimatedTime}</span>
+            <span>{template.metadata?.estimatedTime || "5 min"}</span>
           </div>
           <div className="flex items-center gap-1">
             <Star className="w-3 h-3" />
-            <span>{template.variables.length} variables</span>
+            <span>{template.variables?.length || 0} variables</span>
           </div>
         </div>
 
