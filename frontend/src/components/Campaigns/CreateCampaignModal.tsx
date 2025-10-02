@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { X, Mail, Users, Settings, Eye, Send, Calendar } from "lucide-react";
+import {
+  X,
+  Mail,
+  Users,
+  Settings,
+  Eye,
+  Send,
+  Calendar,
+  Plus,
+} from "lucide-react";
+import { ContactListManagerModal } from "../Contact/ContactListManagerModal";
 
 interface Template {
   _id: string;
@@ -55,6 +65,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
   const [contactLists, setContactLists] = useState<ContactList[]>([]);
   const [previewHtml, setPreviewHtml] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showContactListManager, setShowContactListManager] = useState(false);
 
   const [formData, setFormData] = useState<CampaignFormData>({
     name: "",
@@ -81,8 +92,39 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
     if (isOpen) {
       fetchTemplates();
       fetchContactLists();
+      fetchEmailDefaults();
     }
   }, [isOpen]);
+
+  const fetchEmailDefaults = async () => {
+    try {
+      const response = await fetch("/api/settings/email-defaults", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (response.ok) {
+        const defaults = await response.json();
+        console.log("Email defaults loaded:", defaults);
+        setFormData((prev) => ({
+          ...prev,
+          fromName: defaults.fromName || "",
+          fromEmail: defaults.fromEmail || "",
+          replyToEmail: defaults.replyToEmail || "",
+        }));
+      } else {
+        console.error(
+          "Failed to fetch email defaults - Status:",
+          response.status
+        );
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+      }
+    } catch (error) {
+      console.error("Failed to fetch email defaults:", error);
+    }
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -153,20 +195,23 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
   };
 
   const handleTemplateSelect = (template: Template) => {
-    // Extract variable names from the variables array
-    const templateVariables = (template.variables || [])
-      .map((variable) => variable.name)
-      .filter((name) => typeof name === "string") as string[];
+    // Extract variable names from the variables array and set default values
+    const templateVariables = (template.variables || []).reduce(
+      (acc, variable) => {
+        if (typeof variable.name === "string") {
+          acc[variable.name] = variable.defaultValue || "";
+        }
+        return acc;
+      },
+      {} as Record<string, string>
+    );
 
     setFormData((prev) => ({
       ...prev,
       templateId: template._id,
       subject: template.subject,
       htmlContent: template.content,
-      variables: templateVariables.reduce((acc, variableName) => {
-        acc[variableName] = "";
-        return acc;
-      }, {} as Record<string, string>),
+      variables: templateVariables,
     }));
   };
 
@@ -187,6 +232,11 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
         ? prev.listIds.filter((id) => id !== listId)
         : [...prev.listIds, listId],
     }));
+  };
+
+  const handleContactListCreated = (newList: ContactList) => {
+    setContactLists((prev) => [...prev, newList]);
+    setShowContactListManager(false);
   };
 
   const handlePreview = async () => {
@@ -418,7 +468,10 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                       }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Your Company"
+                    placeholder={
+                      formData.fromName ||
+                      "e.g., Codlogics Software Engineering"
+                    }
                   />
                   {errors.fromName && (
                     <p className="text-red-600 text-sm mt-1">
@@ -441,7 +494,9 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                       }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., noreply@yourcompany.com"
+                    placeholder={
+                      formData.fromEmail || "e.g., noreply@codlogics.com"
+                    }
                   />
                   {errors.fromEmail && (
                     <p className="text-red-600 text-sm mt-1">
@@ -464,7 +519,9 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                       }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., support@yourcompany.com"
+                    placeholder={
+                      formData.replyToEmail || "e.g., support@codlogics.com"
+                    }
                   />
                 </div>
 
@@ -523,9 +580,10 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder={
-                              variable.description || `Enter ${variable.name}`
+                              variable.defaultValue ||
+                              variable.description ||
+                              `Enter ${variable.name}`
                             }
-                            defaultValue={variable.defaultValue}
                           />
                         </div>
                       ))}
@@ -538,11 +596,33 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
           {/* Step 3: Recipients */}
           {currentStep === 3 && (
             <div>
-              <h3 className="text-lg font-medium mb-4">Select Recipients</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium">Select Recipients</h3>
+                <button
+                  onClick={() => setShowContactListManager(true)}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                >
+                  <Plus size={16} />
+                  <span>Manage Lists</span>
+                </button>
+              </div>
+
               {contactLists.length === 0 ? (
-                <p className="text-gray-500">
-                  No contact lists available. Create a contact list first.
-                </p>
+                <div className="text-center py-8">
+                  <Users size={48} className="mx-auto text-gray-400 mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    No Contact Lists Found
+                  </h4>
+                  <p className="text-gray-500 mb-4">
+                    Create your first contact list to start sending campaigns.
+                  </p>
+                  <button
+                    onClick={() => setShowContactListManager(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Create Contact List
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {contactLists.map((list) => (
@@ -697,6 +777,14 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Contact List Manager Modal */}
+      <ContactListManagerModal
+        isOpen={showContactListManager}
+        onClose={() => setShowContactListManager(false)}
+        onContactListCreated={handleContactListCreated}
+        mode="select"
+      />
     </div>
   );
 };

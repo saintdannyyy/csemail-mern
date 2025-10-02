@@ -1,6 +1,7 @@
 const express = require("express");
 const Campaign = require("../models/Campaign");
 const Template = require("../models/Template");
+const Contact = require("../models/Contact");
 const ContactList = require("../models/ContactList");
 const Queue = require("../models/Queue");
 const AuditLog = require("../models/AuditLog");
@@ -111,9 +112,9 @@ router.post(
       if (listIds.length > 0) {
         const lists = await ContactList.find({
           _id: { $in: listIds },
-        }).populate("contacts");
+        });
         totalRecipients = lists.reduce(
-          (total, list) => total + list.contacts.length,
+          (total, list) => total + (list.contactCount || 0),
           0
         );
       }
@@ -128,7 +129,7 @@ router.post(
         htmlContent: campaignContent,
         templateId: templateId || null, // Store template reference
         variables: variables, // Store campaign variables
-        status: scheduledAt ? "scheduled" : "draft",
+        status: scheduledAt ? "scheduled" : status || "draft",
         scheduledAt,
         lists: listIds,
         totalRecipients,
@@ -136,6 +137,59 @@ router.post(
       });
 
       await campaign.save();
+
+      // If status is "sending", send the campaign immediately
+      if (status === "sending") {
+        try {
+          // Get contacts from selected lists
+          const contacts = await Contact.find({
+            lists: { $in: listIds },
+            status: "active",
+          });
+
+          if (contacts.length === 0) {
+            return res
+              .status(400)
+              .json({ error: "No active contacts found in selected lists" });
+          }
+
+          // Send campaign
+          const emailService = require("../services/emailService");
+          await emailService.sendBulkTemplateEmails({
+            fromName,
+            fromEmail,
+            replyToEmail: replyToEmail || fromEmail,
+            subject: campaignSubject,
+            htmlContent: campaignContent,
+            variables: variables,
+            contacts: contacts.map((contact) => ({
+              email: contact.email,
+              variables: {
+                first_name: contact.firstName || contact.email.split("@")[0],
+                last_name: contact.lastName || "",
+                email: contact.email,
+                ...contact.customFields,
+              },
+            })),
+          });
+
+          // Update campaign status
+          campaign.status = "sent";
+          campaign.sentAt = new Date();
+          await campaign.save();
+        } catch (sendError) {
+          console.error("Failed to send campaign:", sendError);
+          // Keep campaign as draft if sending fails
+          campaign.status = "draft";
+          await campaign.save();
+          return res
+            .status(500)
+            .json({
+              error:
+                "Campaign created but failed to send: " + sendError.message,
+            });
+        }
+      }
 
       // Log audit event
       await AuditLog.create({
