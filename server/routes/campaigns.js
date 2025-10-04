@@ -75,6 +75,7 @@ router.post(
         variables = {}, // NEW: Template variables
         listIds = [],
         scheduledAt,
+        status,
       } = req.body;
 
       // Validate required fields
@@ -164,27 +165,71 @@ router.post(
 
           // Send campaign
           const emailService = require("../services/emailService");
-          await emailService.sendBulkTemplateEmails({
-            fromName,
-            fromEmail,
-            replyToEmail: replyToEmail || fromEmail,
-            subject: campaignSubject,
-            htmlContent: campaignContent,
-            variables: variables,
-            contacts: contacts.map((contact) => ({
-              email: contact.email,
-              variables: {
-                first_name: contact.firstName || contact.email.split("@")[0],
-                last_name: contact.lastName || "",
-                email: contact.email,
-                ...contact.customFields,
-              },
-            })),
-          });
+          let sendResults;
 
-          // Update campaign status
-          campaign.status = "sent";
-          campaign.sentAt = new Date();
+          if (templateId) {
+            // Template-based campaign
+            sendResults = await emailService.sendBulkTemplateEmails({
+              templateId,
+              contacts: contacts.map((contact) => ({
+                email: contact.email,
+                variables: {
+                  first_name: contact.firstName || contact.email.split("@")[0],
+                  last_name: contact.lastName || "",
+                  email: contact.email,
+                  ...contact.customFields,
+                },
+              })),
+              variables: variables,
+              fromName,
+              fromEmail,
+              replyTo: replyToEmail || fromEmail,
+              userId: req.user._id,
+              campaignId: campaign._id,
+            });
+          } else {
+            // Custom HTML campaign
+            sendResults = await emailService.sendBulkTemplateEmails({
+              customTemplate: {
+                subject: campaignSubject,
+                content: campaignContent,
+              },
+              contacts: contacts.map((contact) => ({
+                email: contact.email,
+                variables: {
+                  first_name: contact.firstName || contact.email.split("@")[0],
+                  last_name: contact.lastName || "",
+                  email: contact.email,
+                  ...contact.customFields,
+                },
+              })),
+              variables: variables,
+              fromName,
+              fromEmail,
+              replyTo: replyToEmail || fromEmail,
+              userId: req.user._id,
+              campaignId: campaign._id,
+            });
+          }
+
+          // Update campaign status with send results
+          if (
+            sendResults &&
+            (sendResults.successful?.length > 0 ||
+              sendResults.failed?.length > 0)
+          ) {
+            campaign.status = "sent";
+            campaign.sentAt = new Date();
+            campaign.sentCount = sendResults.successful?.length || 0;
+            campaign.failedCount = sendResults.failed?.length || 0;
+            console.log(
+              `Campaign sent immediately: ${campaign.sentCount} successful, ${campaign.failedCount} failed`
+            );
+          } else {
+            // No results returned, keep as draft for manual sending later
+            campaign.status = "draft";
+            console.log("No send results returned, keeping campaign as draft");
+          }
           await campaign.save();
         } catch (sendError) {
           console.error("Failed to send campaign:", sendError);
@@ -237,7 +282,11 @@ router.post(
         return res.status(404).json({ error: "Campaign not found" });
       }
 
-      if (campaign.status !== "draft" && campaign.status !== "scheduled") {
+      if (
+        campaign.status !== "draft" &&
+        campaign.status !== "scheduled" &&
+        !(campaign.status === "sent" && campaign.sentCount === 0)
+      ) {
         return res.status(400).json({ error: "Campaign cannot be sent" });
       }
 
