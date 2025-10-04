@@ -69,6 +69,14 @@ export interface EmailBlock {
   styles: Record<string, any>;
 }
 
+export interface TemplateVariable {
+  name: string;
+  type: "text" | "email" | "url" | "number";
+  defaultValue?: string;
+  description?: string;
+  required?: boolean;
+}
+
 // Block components
 const TextBlock: React.FC<{
   block: EmailBlock;
@@ -402,6 +410,80 @@ export const EmailEditor: React.FC = () => {
   const [templateName, setTemplateName] = useState("");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [variables, setVariables] = useState<TemplateVariable[]>([]);
+  const [showVariablePanel, setShowVariablePanel] = useState(false);
+  const [editingVariable, setEditingVariable] =
+    useState<TemplateVariable | null>(null);
+
+  // Function to automatically detect variables in content
+  const detectVariables = (content: string): string[] => {
+    const variableRegex = /\{\{([^}]+)\}\}/g;
+    const matches = content.match(variableRegex);
+    if (!matches) return [];
+
+    return [
+      ...new Set(matches.map((match) => match.replace(/[{}]/g, "").trim())),
+    ];
+  };
+
+  // Function to extract all variables from all blocks
+  const extractAllVariables = (): string[] => {
+    const allContent = blocks
+      .map((block) => {
+        if (block.type === "text") {
+          return block.content?.text || "";
+        } else if (block.type === "button") {
+          return `${block.content?.text || ""} ${block.content?.url || ""}`;
+        }
+        return "";
+      })
+      .join(" ");
+
+    return detectVariables(`${emailSubject} ${allContent}`);
+  };
+
+  // Function to sync detected variables with managed variables
+  const syncVariables = () => {
+    const detectedVars = extractAllVariables();
+    const currentVarNames = variables.map((v) => v.name);
+
+    // Add new detected variables
+    const newVariables = detectedVars
+      .filter((varName) => !currentVarNames.includes(varName))
+      .map((varName) => ({
+        name: varName,
+        type: "text" as const,
+        defaultValue: "",
+        description: "",
+        required: false,
+      }));
+
+    if (newVariables.length > 0) {
+      setVariables((prev) => [...prev, ...newVariables]);
+    }
+  };
+
+  // Auto-sync variables when blocks or subject change
+  useEffect(() => {
+    syncVariables();
+  }, [blocks, emailSubject]);
+
+  // Function to insert variable into text
+  const insertVariableIntoText = (variableName: string) => {
+    const variableText = `{{${variableName}}}`;
+    // Focus on a text block or show instruction
+    alert(`Copy this variable and paste it in your text: ${variableText}`);
+  };
+
+  // Function to validate variables in content
+  const validateVariables = (): string[] => {
+    const detectedVars = extractAllVariables();
+    const managedVars = variables.map((v) => v.name);
+    const missingVars = detectedVars.filter(
+      (varName) => !managedVars.includes(varName)
+    );
+    return missingVars;
+  };
 
   // Load template data if coming from Templates page
   useEffect(() => {
@@ -605,8 +687,8 @@ export const EmailEditor: React.FC = () => {
         name: templateName,
         subject: emailSubject,
         content: generateEmailHTML(),
-        description: `Created from Email Editor - ${blocks.length} blocks`,
-        variables: [], // Could be extracted from content if needed
+        description: `Created from Email Editor - ${blocks.length} blocks, ${variables.length} variables`,
+        variables: variables,
       };
 
       const response = await fetch("/api/templates", {
@@ -761,6 +843,148 @@ export const EmailEditor: React.FC = () => {
             <span className="text-sm">📏</span>
             <span className="text-sm font-medium">Spacer</span>
           </button>
+        </div>
+
+        {/* Variables Section */}
+        <div className="mt-6 border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-md font-semibold text-gray-800">
+              Template Variables
+            </h3>
+            <button
+              onClick={() => setShowVariablePanel(!showVariablePanel)}
+              className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+            >
+              {showVariablePanel ? "Hide" : "Manage"}
+            </button>
+          </div>
+
+          {variables.length > 0 ? (
+            <div className="space-y-2">
+              {variables
+                .slice(0, showVariablePanel ? variables.length : 3)
+                .map((variable, index) => (
+                  <div
+                    key={variable.name}
+                    className="bg-yellow-50 border border-yellow-200 rounded p-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <code className="text-xs font-mono text-yellow-800">
+                        {`{{${variable.name}}}`}
+                      </code>
+                      <span className="text-xs text-yellow-600 capitalize">
+                        {variable.type}
+                      </span>
+                    </div>
+                    {variable.description && (
+                      <p className="text-xs text-yellow-700 mt-1">
+                        {variable.description}
+                      </p>
+                    )}
+                    {showVariablePanel && (
+                      <div className="mt-2 space-y-1">
+                        <input
+                          type="text"
+                          placeholder="Description..."
+                          value={variable.description || ""}
+                          onChange={(e) => {
+                            const updatedVariables = [...variables];
+                            updatedVariables[index] = {
+                              ...variable,
+                              description: e.target.value,
+                            };
+                            setVariables(updatedVariables);
+                          }}
+                          className="w-full text-xs px-2 py-1 border border-yellow-300 rounded focus:outline-none focus:border-yellow-500"
+                        />
+                        <div className="flex gap-1">
+                          <select
+                            value={variable.type}
+                            onChange={(e) => {
+                              const updatedVariables = [...variables];
+                              updatedVariables[index] = {
+                                ...variable,
+                                type: e.target.value as any,
+                              };
+                              setVariables(updatedVariables);
+                            }}
+                            className="text-xs px-1 py-1 border border-yellow-300 rounded focus:outline-none focus:border-yellow-500"
+                          >
+                            <option value="text">Text</option>
+                            <option value="email">Email</option>
+                            <option value="url">URL</option>
+                            <option value="number">Number</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Default value..."
+                            value={variable.defaultValue || ""}
+                            onChange={(e) => {
+                              const updatedVariables = [...variables];
+                              updatedVariables[index] = {
+                                ...variable,
+                                defaultValue: e.target.value,
+                              };
+                              setVariables(updatedVariables);
+                            }}
+                            className="flex-1 text-xs px-2 py-1 border border-yellow-300 rounded focus:outline-none focus:border-yellow-500"
+                          />
+                          <button
+                            onClick={() => {
+                              const updatedVariables = variables.filter(
+                                (_, i) => i !== index
+                              );
+                              setVariables(updatedVariables);
+                            }}
+                            className="text-xs text-red-600 hover:text-red-800 px-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              {!showVariablePanel && variables.length > 3 && (
+                <div className="text-xs text-gray-500 text-center">
+                  +{variables.length - 3} more variables...
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500 text-center py-4 border border-dashed border-gray-300 rounded">
+              <p>No variables detected</p>
+              <p className="mt-1">Use {`{{variable_name}}`} in your content</p>
+            </div>
+          )}
+
+          {showVariablePanel && (
+            <div className="mt-3">
+              <button
+                onClick={() => {
+                  const newVarName = prompt("Enter variable name:");
+                  if (
+                    newVarName &&
+                    !variables.find((v) => v.name === newVarName)
+                  ) {
+                    setVariables((prev) => [
+                      ...prev,
+                      {
+                        name: newVarName.replace(/\s+/g, "_").toLowerCase(),
+                        type: "text",
+                        defaultValue: "",
+                        description: "",
+                        required: false,
+                      },
+                    ]);
+                  }
+                }}
+                className="w-full text-xs bg-green-100 text-green-700 px-2 py-2 rounded hover:bg-green-200 border border-green-300"
+              >
+                + Add Custom Variable
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -927,9 +1151,27 @@ export const EmailEditor: React.FC = () => {
                   <p>Template will include:</p>
                   <ul className="list-disc list-inside mt-1 space-y-1">
                     <li>{blocks.length} email blocks</li>
+                    <li>{variables.length} template variables</li>
                     <li>Complete HTML structure</li>
                     <li>All styling and formatting</li>
                   </ul>
+                  {variables.length > 0 && (
+                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                      <p className="text-xs font-medium text-yellow-800 mb-1">
+                        Variables:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {variables.map((variable) => (
+                          <code
+                            key={variable.name}
+                            className="text-xs bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded"
+                          >
+                            {`{{${variable.name}}}`}
+                          </code>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
