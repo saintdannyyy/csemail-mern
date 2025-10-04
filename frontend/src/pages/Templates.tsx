@@ -15,6 +15,39 @@ import {
 import { EmailTemplate } from "../types";
 import TemplateLibrary from "../components/Templates/TemplateLibrary";
 
+// Variable detection utility
+const detectVariables = (
+  content: string
+): Array<{
+  name: string;
+  type: "text" | "email" | "url" | "number";
+  required: boolean;
+  defaultValue?: string;
+  description?: string;
+}> => {
+  const variableRegex = /\{\{([^}]+)\}\}/g;
+  const matches = content.match(variableRegex);
+  if (!matches) return [];
+
+  const uniqueVars = [
+    ...new Set(matches.map((match) => match.replace(/[{}]/g, "").trim())),
+  ];
+
+  return uniqueVars.map((varName) => ({
+    name: varName,
+    type: varName.includes("email")
+      ? "email"
+      : varName.includes("url") || varName.includes("link")
+      ? "url"
+      : varName.includes("count") || varName.includes("number")
+      ? "number"
+      : "text",
+    required: false,
+    defaultValue: "",
+    description: `Auto-detected variable: ${varName}`,
+  }));
+};
+
 export const Templates: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -121,6 +154,26 @@ export const Templates: React.FC = () => {
     try {
       const { apiClient } = await import("../utils/apiClient");
 
+      // Auto-detect variables for the copied template
+      const contentToAnalyze = `${template.subject || ""} ${
+        template.content || template.htmlContent || ""
+      }`;
+      const detectedVariables = detectVariables(contentToAnalyze);
+
+      // Merge with existing variables
+      const existingVars = template.variables || [];
+      const mergedVariables = detectedVariables.map((detected) => {
+        const existing = existingVars.find((v) => v.name === detected.name);
+        return existing ? { ...detected, ...existing } : detected;
+      });
+
+      const customVars = existingVars.filter(
+        (existing) =>
+          !detectedVariables.find((detected) => detected.name === existing.name)
+      );
+
+      const finalVariables = [...mergedVariables, ...customVars];
+
       // Only send the fields that the backend expects
       const newTemplate = {
         name: `${template.name} (Copy)`,
@@ -129,14 +182,14 @@ export const Templates: React.FC = () => {
         description: template.description,
         category: template.category,
         tags: template.tags || [],
-        variables: template.variables || [],
+        variables: finalVariables,
         thumbnailUrl: template.thumbnailUrl,
         isDefault: false, // Copies are never default
       };
 
       const created = await apiClient.createTemplate(newTemplate);
       await fetchTemplates(); // Refresh the list
-      console.log("Template copied:", created);
+      console.log("Template copied with variables:", created);
     } catch (error) {
       console.error("Failed to copy template:", error);
       setError("Failed to copy template");
@@ -153,10 +206,34 @@ export const Templates: React.FC = () => {
 
     setSaving(true);
     try {
+      // Auto-detect variables from content and subject
+      const contentToAnalyze = `${editingTemplate.subject || ""} ${
+        editingTemplate.content || editingTemplate.htmlContent || ""
+      }`;
+      const detectedVariables = detectVariables(contentToAnalyze);
+
+      // Merge with existing variables, keeping user customizations
+      const existingVars = editingTemplate.variables || [];
+      const mergedVariables = detectedVariables.map((detected) => {
+        const existing = existingVars.find((v) => v.name === detected.name);
+        return existing ? { ...detected, ...existing } : detected;
+      });
+
+      // Add any existing variables that weren't detected (custom ones)
+      const customVars = existingVars.filter(
+        (existing) =>
+          !detectedVariables.find((detected) => detected.name === existing.name)
+      );
+
+      const finalVariables = [...mergedVariables, ...customVars];
+
       const { apiClient } = await import("../utils/apiClient");
       const updatedTemplate = await apiClient.updateTemplate(
         editingTemplate._id || editingTemplate.id,
-        editingTemplate
+        {
+          ...editingTemplate,
+          variables: finalVariables,
+        }
       );
 
       // Update the template in the local state
@@ -170,7 +247,7 @@ export const Templates: React.FC = () => {
 
       setShowEditModal(false);
       setEditingTemplate(null);
-      console.log("Template updated:", updatedTemplate);
+      console.log("Template updated with variables:", updatedTemplate);
     } catch (error) {
       console.error("Failed to update template:", error);
       setError("Failed to update template");
