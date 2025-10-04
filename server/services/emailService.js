@@ -255,6 +255,7 @@ class EmailService {
    */
   async sendBulkTemplateEmails({
     templateId,
+    customTemplate, // NEW: Support for custom templates
     contacts,
     variables = {},
     fromName,
@@ -279,6 +280,7 @@ class EmailService {
         try {
           const result = await this.sendTemplateEmail({
             templateId,
+            customTemplate, // Pass custom template through
             to: contact.email,
             variables,
             contact,
