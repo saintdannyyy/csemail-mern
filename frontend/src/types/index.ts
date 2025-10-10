@@ -15,6 +15,7 @@ export interface Contact {
   email: string;
   firstName?: string;
   lastName?: string;
+  phone?: string;
   tags: string[];
   customFields: Record<string, string>;
   status: 'active' | 'unsubscribed' | 'bounced' | 'complained';

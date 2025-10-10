@@ -34,6 +34,7 @@ interface ContactFormData {
   email: string
   firstName: string
   lastName: string
+  phone: string
   tags: string[]
   customFields: Record<string, string>
   status: 'active' | 'unsubscribed' | 'bounced' | 'complained'
@@ -52,6 +53,7 @@ export function ContactFormDialog({
     email: contact?.email || '',
     firstName: contact?.firstName || '',
     lastName: contact?.lastName || '',
+    phone: contact?.phone || '',
     tags: contact?.tags || [],
     customFields: contact?.customFields || {},
     status: contact?.status || 'active',
@@ -77,6 +79,7 @@ export function ContactFormDialog({
         email: '',
         firstName: '',
         lastName: '',
+        phone: '',
         tags: [],
         customFields: {},
         status: 'active',
@@ -164,6 +167,16 @@ export function ContactFormDialog({
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="Enter phone number"
+              />
+            </div>
             {/* <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -205,6 +218,7 @@ export function ContactFormDialog({
               />
             </div>
           </div>
+          
 
           {/* Tags Section */}
           {/* <div className="space-y-2">
@@ -308,6 +322,7 @@ export function ContactFormDialog({
                     email: contact.email || '',
                     firstName: contact.firstName || '',
                     lastName: contact.lastName || '',
+                    phone: contact.phone || '',
                     tags: contact.tags || [],
                     customFields: contact.customFields || {},
                     status: contact.status || 'active',
@@ -318,6 +333,7 @@ export function ContactFormDialog({
                     email: '',
                     firstName: '',
                     lastName: '',
+                    phone: '',
                     tags: [],
                     customFields: {},
                     status: 'active',
