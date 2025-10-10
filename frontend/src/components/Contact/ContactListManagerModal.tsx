@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, Edit, Trash2, Users } from "lucide-react";
+import { ContactListContactsModal } from "./ContactListContactsModal";
 
 interface ContactList {
   _id: string;
@@ -32,6 +33,8 @@ export const ContactListManagerModal: React.FC<
     description: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [contactsModalOpen, setContactsModalOpen] = useState(false);
+  const [selectedListForContacts, setSelectedListForContacts] = useState<ContactList | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -140,6 +143,18 @@ export const ContactListManagerModal: React.FC<
     setEditingList(null);
     setFormData({ name: "", description: "" });
     setErrors({});
+  };
+
+  const handleManageContacts = (list: ContactList) => {
+    setSelectedListForContacts(list);
+    setContactsModalOpen(true);
+  };
+
+  const handleContactsModalClose = () => {
+    setContactsModalOpen(false);
+    setSelectedListForContacts(null);
+    // Refresh contact lists to update counts
+    fetchContactLists();
   };
 
   if (!isOpen) return null;
@@ -293,6 +308,13 @@ export const ContactListManagerModal: React.FC<
                     {mode === "manage" && (
                       <div className="flex items-center space-x-2">
                         <button
+                          onClick={() => handleManageContacts(list)}
+                          className="p-2 text-blue-500 hover:text-blue-700"
+                          title="Manage contacts in this list"
+                        >
+                          <Users size={16} />
+                        </button>
+                        <button
                           onClick={() => handleEdit(list)}
                           className="p-2 text-gray-400 hover:text-gray-600"
                           title="Edit list"
@@ -325,6 +347,14 @@ export const ContactListManagerModal: React.FC<
           </button>
         </div>
       </div>
+
+      {/* Contact List Contacts Modal */}
+      <ContactListContactsModal
+        isOpen={contactsModalOpen}
+        onClose={handleContactsModalClose}
+        contactList={selectedListForContacts}
+        onContactListUpdated={fetchContactLists}
+      />
     </div>
   );
 };

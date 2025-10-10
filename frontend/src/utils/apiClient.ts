@@ -21,30 +21,11 @@ class ApiClient {
   clearToken() {
     this.token = null;
     localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
   }
 
-  // Check if user is authenticated with valid token
+  // Check if user is authenticated
   isAuthenticated(): boolean {
-    if (!this.token) return false;
-
-    try {
-      // Basic JWT token validation (check if it's properly formatted and not expired)
-      const payload = JSON.parse(atob(this.token.split('.')[1]));
-      const now = Date.now() / 1000;
-      
-      if (payload.exp && payload.exp < now) {
-        console.warn('Token has expired');
-        this.clearToken();
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Invalid token format:', error);
-      this.clearToken();
-      return false;
-    }
+    return !!this.token;
   }
 
   // Generic request method
@@ -111,17 +92,6 @@ class ApiClient {
           errorData = JSON.parse(errorText);
         } catch {
           errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
-        }
-        
-        // Handle authentication errors - redirect to login
-        if (response.status === 401) {
-          console.warn('Authentication failed - token expired or invalid');
-          this.clearToken();
-          // Only redirect if not already on login page
-          if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-          }
-          throw new Error('Authentication expired. Please log in again.');
         }
         
         throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
@@ -205,6 +175,32 @@ class ApiClient {
     return this.delete(`/api/contacts/${contactId}`);
   }
 
+  // Contact List methods
+  async getContactLists(): Promise<any> {
+    return this.get('/api/contacts/lists');
+  }
+
+  async createContactList(list: any): Promise<any> {
+    return this.post('/api/contacts/lists', list);
+  }
+
+  async updateContactList(listId: string, list: any): Promise<any> {
+    return this.put(`/api/contacts/lists/${listId}`, list);
+  }
+
+  async deleteContactList(listId: string): Promise<any> {
+    return this.delete(`/api/contacts/lists/${listId}`);
+  }
+
+  async addContactToList(listId: string, contactId: string): Promise<any> {
+    return this.post(`/api/contacts/lists/${listId}/contacts/${contactId}`);
+  }
+
+  async removeContactFromList(listId: string, contactId: string): Promise<any> {
+    return this.delete(`/api/contacts/lists/${listId}/contacts/${contactId}`);
+  }
+
+
   // Import contacts method - make sure this exists and is correctly named
   async importContacts(formData: FormData): Promise<any> {
     return this.post('/api/contacts/import', formData);
@@ -237,23 +233,6 @@ class ApiClient {
     return response.blob();
   }
 
-  // Contact List methods
-  async getContactLists(): Promise<any> {
-    return this.get('/api/contacts/lists');
-  }
-
-  async createContactList(list: any): Promise<any> {
-    return this.post('/api/contacts/lists', list);
-  }
-
-  async updateContactList(listId: string, list: any): Promise<any> {
-    return this.put(`/api/contacts/lists/${listId}`, list);
-  }
-
-  async deleteContactList(listId: string): Promise<any> {
-    return this.delete(`/api/contacts/lists/${listId}`);
-  }
-
   // Campaign methods
   async getCampaigns(page: number = 1, limit: number = 20): Promise<any> {
     return this.get(`/api/campaigns?page=${page}&limit=${limit}`);
@@ -261,22 +240,6 @@ class ApiClient {
 
   async createCampaign(campaign: any): Promise<any> {
     return this.post('/api/campaigns', campaign);
-  }
-
-  async sendCampaign(campaignId: string, options?: any): Promise<any> {
-    return this.post(`/api/campaigns/${campaignId}/send`, options || {});
-  }
-
-  async previewCampaign(campaignId: string, variables?: any, sampleContact?: any): Promise<any> {
-    return this.post(`/api/campaigns/${campaignId}/preview`, { variables, sampleContact });
-  }
-
-  async testCampaign(campaignId: string, testEmails: string[], variables?: any, sampleContact?: any): Promise<any> {
-    return this.post(`/api/campaigns/${campaignId}/test`, { testEmails, variables, sampleContact });
-  }
-
-  async getCampaignAnalytics(campaignId: string): Promise<any> {
-    return this.get(`/api/campaigns/${campaignId}/analytics`);
   }
 
   // Template methods
