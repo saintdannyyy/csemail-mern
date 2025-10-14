@@ -1,3 +1,7 @@
+/**
+ * Email Service for CSE Mail Platform
+ * Handles SMTP configuration, email sending, and template processing
+ */
 const nodemailer = require("nodemailer");
 const Template = require("../models/Template");
 const AuditLog = require("../models/AuditLog");
@@ -7,6 +11,9 @@ const path = require("path");
 // Ensure environment variables are loaded
 require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
+/**
+ * Email service class for handling email operations
+ */
 class EmailService {
   constructor() {
     this.transporter = null;
@@ -26,9 +33,7 @@ class EmailService {
           settings = await Settings.findOne().maxTimeMS(2000); // 2 second timeout
         }
       } catch (dbError) {
-        console.log(
-          "Database not ready, using environment variables for SMTP config"
-        );
+        // Database not ready, fallback to environment variables
       }
 
       const smtpConfig = {
@@ -94,16 +99,15 @@ class EmailService {
 
   /**
    * Verify SMTP connection
+   * @returns {Promise<boolean>} True if connection successful
    */
   async verifyConnection() {
     try {
       await this.transporter.verify();
-      console.log("SMTP connection verified successfully");
+      return true;
     } catch (error) {
       console.error("SMTP connection failed:", error.message);
-      console.error(
-        "Please check your SMTP configuration in environment variables"
-      );
+      return false;
     }
   }
 
@@ -294,17 +298,11 @@ class EmailService {
       total: contacts.length,
     };
 
-    console.log(`Starting bulk email send to ${contacts.length} contacts`);
-
     // Send emails one by one with delays to avoid connection issues
     for (let i = 0; i < contacts.length; i++) {
       const contact = contacts[i];
 
       try {
-        console.log(
-          `Sending email ${i + 1}/${contacts.length} to ${contact.email}`
-        );
-
         const result = await this.sendTemplateEmail({
           templateId,
           customTemplate, // Pass custom template through
@@ -323,11 +321,9 @@ class EmailService {
           messageId: result.messageId,
           subject: result.subject,
         });
-
-        console.log(`✅ Email sent successfully to ${contact.email}`);
       } catch (error) {
         console.error(
-          `❌ Failed to send email to ${contact.email}:`,
+          `Failed to send email to ${contact.email}:`,
           error.message
         );
         results.failed.push({
@@ -338,14 +334,10 @@ class EmailService {
 
       // Add delay between emails to avoid overwhelming SMTP
       if (i < contacts.length - 1) {
-        console.log(`Waiting ${delay}ms before next email...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
-    console.log(
-      `Bulk email sending completed: ${results.successful.length} successful, ${results.failed.length} failed`
-    );
     return results;
   }
 

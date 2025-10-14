@@ -1,9 +1,19 @@
+/**
+ * Initialize default settings in the database
+ * This utility script creates or updates the default settings document
+ * Run this script when setting up the application for the first time
+ */
 const mongoose = require("mongoose");
 const Settings = require("../models/Settings");
 const path = require("path");
 
 // Load environment variables
 require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+
+/**
+ * Initialize or update default settings
+ * @returns {Promise<void>}
+ */
 
 async function initializeSettings() {
   try {

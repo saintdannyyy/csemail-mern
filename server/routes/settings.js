@@ -9,13 +9,15 @@ require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
 const router = express.Router();
 
-// Get or create default settings
+/**
+ * Get or create default settings
+ * @returns {Object} Settings document
+ */
 async function getOrCreateSettings() {
   try {
     let settings = await Settings.findOne({ isDefault: true });
 
     if (!settings) {
-      console.log("No default settings found, creating new settings...");
       // Create default settings with environment variables
       settings = new Settings({
         smtpHost: process.env.SMTP_HOST || "",
@@ -37,9 +39,6 @@ async function getOrCreateSettings() {
         isDefault: true,
       });
       await settings.save();
-      console.log("Default settings created successfully");
-    } else {
-      console.log("Default settings found");
     }
 
     return settings;
@@ -56,14 +55,7 @@ router.get(
   requireRole(["admin", "editor", "user"]),
   async (req, res) => {
     try {
-      console.log(
-        "Settings GET route called by user:",
-        req.user?.email,
-        "role:",
-        req.user?.role
-      );
       const settings = await getOrCreateSettings();
-      console.log("Settings retrieved successfully");
 
       // Group settings by category for the frontend
       const groupedSettings = {
@@ -147,11 +139,9 @@ router.get(
         ],
       };
 
-      console.log("Sending grouped settings response");
       res.json(groupedSettings);
     } catch (error) {
       console.error("Get settings error:", error);
-      console.error("Error stack:", error.stack);
       res
         .status(500)
         .json({ error: "Failed to fetch settings", details: error.message });

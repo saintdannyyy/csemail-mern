@@ -81,7 +81,6 @@ router.post(
         customFields = {},
         listIds = [],
       } = req.body;
-      console.log("Request Body:", req.body);
 
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
@@ -122,7 +121,14 @@ router.post(
         firstName,
         lastName,
         phone,
-        tags:["order", "confirmation", "receipt", "newsletter", "promotion", "ecommerce"],
+        tags: [
+          "order",
+          "confirmation",
+          "receipt",
+          "newsletter",
+          "promotion",
+          "ecommerce",
+        ],
         customFields,
         status: "active",
         lists: listIds,
@@ -130,7 +136,6 @@ router.post(
       });
 
       await contact.save();
-      console.log("Created Contact:", contact);
 
       // Log audit event
       await AuditLog.create({
@@ -166,8 +171,6 @@ router.put(
         status,
         listIds = [],
       } = req.body;
-
-      console.log("Update Contact Request:", { id, body: req.body });
 
       // Validate contact ID
       if (!id) {
@@ -229,8 +232,6 @@ router.put(
         new: true, // Return updated document
         runValidators: true, // Run schema validators
       }).populate("lists", "name");
-
-      // console.log("Updated Contact:", updatedContact);
 
       // Log audit event
       await AuditLog.create({
@@ -633,8 +634,6 @@ router.put(
       const { id } = req.params;
       const { name, description } = req.body;
       // console.log("Request Body:", req.body);
-       
-      
 
       console.log("Update ContactList Request:", { id, body: req.body });
 
@@ -663,7 +662,6 @@ router.put(
         }
       }
 
-
       // Prepare update data
       const updateData = {
         ...(name && { name: name.toLowerCase() }),
@@ -674,10 +672,14 @@ router.put(
       };
 
       // Update contactList
-      const updatedContactList = await ContactList.findByIdAndUpdate(id, updateData, {
-        new: true, // Return updated document
-        runValidators: true, // Run schema validators
-      }).populate("name", "description");
+      const updatedContactList = await ContactList.findByIdAndUpdate(
+        id,
+        updateData,
+        {
+          new: true, // Return updated document
+          runValidators: true, // Run schema validators
+        }
+      ).populate("name", "description");
 
       // console.log("Updated ContactList:", updatedContactList);
 
@@ -784,7 +786,6 @@ router.delete(
     }
   }
 );
-
 
 // Export contacts
 router.get(
@@ -952,7 +953,9 @@ router.post(
 
       // Validate parameters
       if (!listId || !contactId) {
-        return res.status(400).json({ error: "List ID and Contact ID are required" });
+        return res
+          .status(400)
+          .json({ error: "List ID and Contact ID are required" });
       }
 
       // Find the contact and list
@@ -969,7 +972,9 @@ router.post(
 
       // Check if contact is already in the list
       if (contact.lists.includes(listId)) {
-        return res.status(409).json({ error: "Contact is already in this list" });
+        return res
+          .status(409)
+          .json({ error: "Contact is already in this list" });
       }
 
       // Add contact to list
@@ -988,19 +993,19 @@ router.post(
           listId,
           listName: contactList.name,
           contactEmail: contact.email,
-        }
+        },
       });
 
       res.json({
         message: "Contact added to list successfully",
         contact: contact,
-        list: contactList
+        list: contactList,
       });
     } catch (error) {
       console.error("Add contact to list error:", error);
-      
+
       // Handle cast errors (invalid ObjectId)
-      if (error.name === 'CastError') {
+      if (error.name === "CastError") {
         return res.status(400).json({ error: "Invalid ID format" });
       }
 
@@ -1022,7 +1027,9 @@ router.delete(
 
       // Validate parameters
       if (!listId || !contactId) {
-        return res.status(400).json({ error: "List ID and Contact ID are required" });
+        return res
+          .status(400)
+          .json({ error: "List ID and Contact ID are required" });
       }
 
       // Find the contact and list
@@ -1043,7 +1050,7 @@ router.delete(
       }
 
       // Remove contact from list
-      contact.lists = contact.lists.filter(id => id.toString() !== listId);
+      contact.lists = contact.lists.filter((id) => id.toString() !== listId);
       await contact.save();
 
       console.log(`Removed contact ${contactId} from list ${listId}`);
@@ -1058,19 +1065,19 @@ router.delete(
           listId,
           listName: contactList.name,
           contactEmail: contact.email,
-        }
+        },
       });
 
       res.json({
         message: "Contact removed from list successfully",
         contact: contact,
-        list: contactList
+        list: contactList,
       });
     } catch (error) {
       console.error("Remove contact from list error:", error);
-      
+
       // Handle cast errors (invalid ObjectId)
-      if (error.name === 'CastError') {
+      if (error.name === "CastError") {
         return res.status(400).json({ error: "Invalid ID format" });
       }
 
