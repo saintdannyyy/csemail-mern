@@ -95,7 +95,7 @@ export const Dashboard: React.FC = () => {
 
       <div className="space-y-6">
         {/* API Connection Test - remove this after testing */}
-        <ApiTestComponent />
+        {/* <ApiTestComponent /> */}
 
         <StatsCards stats={stats} />
 
