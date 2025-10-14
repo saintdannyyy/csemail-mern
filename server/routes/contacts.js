@@ -76,6 +76,7 @@ router.post(
         email,
         firstName,
         lastName,
+        phone,
         tags = [],
         customFields = {},
         listIds = [],
@@ -120,14 +121,8 @@ router.post(
         email: email.toLowerCase(),
         firstName,
         lastName,
-        tags: [
-          "order",
-          "confirmation",
-          "receipt",
-          "newsletter",
-          "promotion",
-          "ecommerce",
-        ],
+        phone,
+        tags:["order", "confirmation", "receipt", "newsletter", "promotion", "ecommerce"],
         customFields,
         status: "active",
         lists: listIds,
@@ -165,6 +160,7 @@ router.put(
         email,
         firstName,
         lastName,
+        phone,
         tags = [],
         customFields = {},
         status,
@@ -219,6 +215,7 @@ router.put(
         ...(email && { email: email.toLowerCase() }),
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
+        ...(phone !== undefined && { phone }),
         ...(tags !== undefined && { tags: parsedTags }),
         ...(customFields && { customFields }),
         ...(status && { status }),
@@ -601,7 +598,7 @@ router.post(
       const list = new ContactList({
         name,
         description,
-        createdBy: req.user.userId,
+        createdBy: req.user._id,
         contactCount: 0,
       });
 
@@ -611,7 +608,7 @@ router.post(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user.userId,
+        userId: req.user._id,
         action: "list_created",
         targetType: "list",
         targetId: list._id,
@@ -625,6 +622,169 @@ router.post(
     }
   }
 );
+
+// Update contactList
+router.put(
+  "/lists/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description } = req.body;
+      // console.log("Request Body:", req.body);
+       
+      
+
+      console.log("Update ContactList Request:", { id, body: req.body });
+
+      // Validate contactList ID
+      if (!id) {
+        return res.status(400).json({ error: "ContactList ID is required" });
+      }
+
+      // Find existing contactList
+      const existingContactList = await ContactList.findById(id);
+      if (!existingContactList) {
+        return res.status(404).json({ error: "ContactList not found" });
+      }
+
+      // If name is being updated, check for duplicates
+      if (name && name.toLowerCase() !== existingContactList.name) {
+        const nameExists = await ContactList.findOne({
+          name: name.toLowerCase(),
+          _id: { $ne: id },
+        });
+
+        if (nameExists) {
+          return res.status(409).json({
+            error: "ContactList with this name already exists",
+          });
+        }
+      }
+
+
+      // Prepare update data
+      const updateData = {
+        ...(name && { name: name.toLowerCase() }),
+        ...(description !== undefined && { description }),
+
+        updatedAt: new Date(),
+        updatedBy: req.user._id,
+      };
+
+      // Update contactList
+      const updatedContactList = await ContactList.findByIdAndUpdate(id, updateData, {
+        new: true, // Return updated document
+        runValidators: true, // Run schema validators
+      }).populate("name", "description");
+
+      // console.log("Updated ContactList:", updatedContactList);
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contactList_updated",
+        targetType: "contactList",
+        targetId: updatedContactList._id,
+        details: {
+          changes: updateData,
+          previousValues: {
+            name: existingContactList.name,
+            description: existingContactList.description,
+            createdAt: existingContactList.createdAt,
+            updatedAt: existingContactList.updatedAt,
+          },
+        },
+      });
+
+      res.json(updatedContactList);
+    } catch (error) {
+      console.error("Update contactList error:", error);
+
+      // Handle validation errors
+      if (error.name === "ValidationError") {
+        const validationErrors = Object.values(error.errors).map(
+          (err) => err.message
+        );
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationErrors,
+        });
+      }
+
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === "CastError") {
+        return res.status(400).json({ error: "Invalid contact ID format" });
+      }
+
+      res.status(500).json({ error: "Failed to update contactList" });
+    }
+  }
+);
+
+// Delete contact List
+router.delete(
+  "/lists/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      console.log("Delete ContactList Request:", { id });
+
+      // Validate contactList ID
+      if (!id) {
+        return res.status(400).json({ error: "ContactList ID is required" });
+      }
+
+      // Find and delete contactList
+      const deletedContactList = await ContactList.findByIdAndDelete(id);
+
+      if (!deletedContactList) {
+        return res.status(404).json({ error: "ContactList not found" });
+      }
+
+      console.log("Deleted ContactList:", deletedContactList._id);
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contactList_deleted",
+        targetType: "contactList",
+        targetId: deletedContactList._id,
+        details: {
+          deletedContactList: {
+            name: deletedContactList.name,
+            description: deletedContactList.description,
+            createdAt: deletedContactList.createdAt,
+            updatedAt: deletedContactList.updatedAt,
+          },
+        },
+      });
+
+      res.json({
+        message: "ContactList deleted successfully",
+        deletedContactList: {
+          id: deletedContactList._id,
+          name: deletedContactList.name,
+          description: deletedContactList.description,
+        },
+      });
+    } catch (error) {
+      console.error("Delete contactList error:", error);
+
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === "CastError") {
+        return res.status(400).json({ error: "Invalid contactList ID format" });
+      }
+
+      res.status(500).json({ error: "Failed to delete contactList" });
+    }
+  }
+);
+
 
 // Export contacts
 router.get(
@@ -775,6 +935,146 @@ router.get(
     } catch (error) {
       console.error("Export contacts error:", error);
       res.status(500).json({ error: "Failed to export contacts" });
+    }
+  }
+);
+
+// Add contact to list
+router.post(
+  "/lists/:listId/contacts/:contactId",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { listId, contactId } = req.params;
+
+      console.log("Add Contact to List Request:", { listId, contactId });
+
+      // Validate parameters
+      if (!listId || !contactId) {
+        return res.status(400).json({ error: "List ID and Contact ID are required" });
+      }
+
+      // Find the contact and list
+      const contact = await Contact.findById(contactId);
+      const contactList = await ContactList.findById(listId);
+
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      if (!contactList) {
+        return res.status(404).json({ error: "Contact list not found" });
+      }
+
+      // Check if contact is already in the list
+      if (contact.lists.includes(listId)) {
+        return res.status(409).json({ error: "Contact is already in this list" });
+      }
+
+      // Add contact to list
+      contact.lists.push(listId);
+      await contact.save();
+
+      console.log(`Added contact ${contactId} to list ${listId}`);
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contact_added_to_list",
+        targetType: "contact",
+        targetId: contact._id,
+        details: {
+          listId,
+          listName: contactList.name,
+          contactEmail: contact.email,
+        }
+      });
+
+      res.json({
+        message: "Contact added to list successfully",
+        contact: contact,
+        list: contactList
+      });
+    } catch (error) {
+      console.error("Add contact to list error:", error);
+      
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === 'CastError') {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      res.status(500).json({ error: "Failed to add contact to list" });
+    }
+  }
+);
+
+// Remove contact from list
+router.delete(
+  "/lists/:listId/contacts/:contactId",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { listId, contactId } = req.params;
+
+      console.log("Remove Contact from List Request:", { listId, contactId });
+
+      // Validate parameters
+      if (!listId || !contactId) {
+        return res.status(400).json({ error: "List ID and Contact ID are required" });
+      }
+
+      // Find the contact and list
+      const contact = await Contact.findById(contactId);
+      const contactList = await ContactList.findById(listId);
+
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      if (!contactList) {
+        return res.status(404).json({ error: "Contact list not found" });
+      }
+
+      // Check if contact is in the list
+      if (!contact.lists.includes(listId)) {
+        return res.status(409).json({ error: "Contact is not in this list" });
+      }
+
+      // Remove contact from list
+      contact.lists = contact.lists.filter(id => id.toString() !== listId);
+      await contact.save();
+
+      console.log(`Removed contact ${contactId} from list ${listId}`);
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contact_removed_from_list",
+        targetType: "contact",
+        targetId: contact._id,
+        details: {
+          listId,
+          listName: contactList.name,
+          contactEmail: contact.email,
+        }
+      });
+
+      res.json({
+        message: "Contact removed from list successfully",
+        contact: contact,
+        list: contactList
+      });
+    } catch (error) {
+      console.error("Remove contact from list error:", error);
+      
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === 'CastError') {
+        return res.status(400).json({ error: "Invalid ID format" });
+      }
+
+      res.status(500).json({ error: "Failed to remove contact from list" });
     }
   }
 );
