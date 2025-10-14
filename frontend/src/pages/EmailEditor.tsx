@@ -69,6 +69,14 @@ export interface EmailBlock {
   styles: Record<string, any>;
 }
 
+export interface TemplateVariable {
+  name: string;
+  type: "text" | "email" | "url" | "number";
+  defaultValue?: string;
+  description?: string;
+  required?: boolean;
+}
+
 // Block components
 const TextBlock: React.FC<{
   block: EmailBlock;
@@ -397,7 +405,85 @@ export const EmailEditor: React.FC = () => {
   const location = useLocation();
   const [blocks, setBlocks] = useState<EmailBlock[]>([]);
   const [previewMode, setPreviewMode] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
+  const [templateName, setTemplateName] = useState("");
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [variables, setVariables] = useState<TemplateVariable[]>([]);
+  const [showVariablePanel, setShowVariablePanel] = useState(false);
+  const [editingVariable, setEditingVariable] =
+    useState<TemplateVariable | null>(null);
+
+  // Function to automatically detect variables in content
+  const detectVariables = (content: string): string[] => {
+    const variableRegex = /\{\{([^}]+)\}\}/g;
+    const matches = content.match(variableRegex);
+    if (!matches) return [];
+
+    return [
+      ...new Set(matches.map((match) => match.replace(/[{}]/g, "").trim())),
+    ];
+  };
+
+  // Function to extract all variables from all blocks
+  const extractAllVariables = (): string[] => {
+    const allContent = blocks
+      .map((block) => {
+        if (block.type === "text") {
+          return block.content?.text || "";
+        } else if (block.type === "button") {
+          return `${block.content?.text || ""} ${block.content?.url || ""}`;
+        }
+        return "";
+      })
+      .join(" ");
+
+    return detectVariables(`${emailSubject} ${allContent}`);
+  };
+
+  // Function to sync detected variables with managed variables
+  const syncVariables = () => {
+    const detectedVars = extractAllVariables();
+    const currentVarNames = variables.map((v) => v.name);
+
+    // Add new detected variables
+    const newVariables = detectedVars
+      .filter((varName) => !currentVarNames.includes(varName))
+      .map((varName) => ({
+        name: varName,
+        type: "text" as const,
+        defaultValue: "",
+        description: "",
+        required: false,
+      }));
+
+    if (newVariables.length > 0) {
+      setVariables((prev) => [...prev, ...newVariables]);
+    }
+  };
+
+  // Auto-sync variables when blocks or subject change
+  useEffect(() => {
+    syncVariables();
+  }, [blocks, emailSubject]);
+
+  // Function to insert variable into text
+  const insertVariableIntoText = (variableName: string) => {
+    const variableText = `{{${variableName}}}`;
+    // Focus on a text block or show instruction
+    alert(`Copy this variable and paste it in your text: ${variableText}`);
+  };
+
+  // Function to validate variables in content
+  const validateVariables = (): string[] => {
+    const detectedVars = extractAllVariables();
+    const managedVars = variables.map((v) => v.name);
+    const missingVars = detectedVars.filter(
+      (varName) => !managedVars.includes(varName)
+    );
+    return missingVars;
+  };
 
   // Load template data if coming from Templates page
   useEffect(() => {
@@ -483,14 +569,57 @@ export const EmailEditor: React.FC = () => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${emailSubject}</title>
+        <title>${emailSubject || "Email"}</title>
         <style>
-          body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f4f4f4; }
-          .email-container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; }
-          .email-block { margin-bottom: 15px; }
-          .button { display: inline-block; padding: 12px 24px; text-decoration: none; border-radius: 4px; }
-          .divider { border: none; height: 1px; background-color: #e5e5e5; margin: 20px 0; }
-          img { max-width: 100%; height: auto; }
+          body { 
+            margin: 0; 
+            padding: 20px; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f8f9fa; 
+            line-height: 1.6;
+          }
+          .email-container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .email-block { margin-bottom: 20px; }
+          .button { 
+            display: inline-block; 
+            padding: 14px 28px; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+          }
+          .button:hover { opacity: 0.9; transform: translateY(-1px); }
+          .divider { 
+            border: none; 
+            height: 2px; 
+            background: linear-gradient(90deg, transparent, #e5e5e5, transparent); 
+            margin: 30px 0; 
+          }
+          img { 
+            max-width: 100%; 
+            height: auto; 
+            border-radius: 8px;
+          }
+          @media only screen and (max-width: 600px) {
+            .email-container { 
+              padding: 20px; 
+              margin: 10px;
+              border-radius: 8px;
+            }
+            .button { 
+              display: block; 
+              text-align: center; 
+              margin: 10px 0;
+            }
+          }
         </style>
       </head>
       <body>
@@ -546,6 +675,46 @@ export const EmailEditor: React.FC = () => {
     return html;
   };
 
+  const saveAsTemplate = async () => {
+    if (!templateName.trim()) {
+      alert("Please enter a template name");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const templateData = {
+        name: templateName,
+        subject: emailSubject,
+        content: generateEmailHTML(),
+        description: `Created from Email Editor - ${blocks.length} blocks, ${variables.length} variables`,
+        variables: variables,
+      };
+
+      const response = await fetch("/api/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify(templateData),
+      });
+
+      if (response.ok) {
+        alert("Template saved successfully!");
+        setShowSaveModal(false);
+        setTemplateName("");
+      } else {
+        throw new Error("Failed to save template");
+      }
+    } catch (error) {
+      console.error("Error saving template:", error);
+      alert("Failed to save template. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const exportEmail = () => {
     const html = generateEmailHTML();
     const blob = new Blob([html], { type: "text/html" });
@@ -553,6 +722,25 @@ export const EmailEditor: React.FC = () => {
     const a = document.createElement("a");
     a.href = url;
     a.download = `${emailSubject || "email"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportAsJSON = () => {
+    const data = {
+      subject: emailSubject,
+      blocks: blocks,
+      createdAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${emailSubject || "email"}-template.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -656,6 +844,148 @@ export const EmailEditor: React.FC = () => {
             <span className="text-sm font-medium">Spacer</span>
           </button>
         </div>
+
+        {/* Variables Section */}
+        <div className="mt-6 border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-md font-semibold text-gray-800">
+              Template Variables
+            </h3>
+            <button
+              onClick={() => setShowVariablePanel(!showVariablePanel)}
+              className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+            >
+              {showVariablePanel ? "Hide" : "Manage"}
+            </button>
+          </div>
+
+          {variables.length > 0 ? (
+            <div className="space-y-2">
+              {variables
+                .slice(0, showVariablePanel ? variables.length : 3)
+                .map((variable, index) => (
+                  <div
+                    key={variable.name}
+                    className="bg-yellow-50 border border-yellow-200 rounded p-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <code className="text-xs font-mono text-yellow-800">
+                        {`{{${variable.name}}}`}
+                      </code>
+                      <span className="text-xs text-yellow-600 capitalize">
+                        {variable.type}
+                      </span>
+                    </div>
+                    {variable.description && (
+                      <p className="text-xs text-yellow-700 mt-1">
+                        {variable.description}
+                      </p>
+                    )}
+                    {showVariablePanel && (
+                      <div className="mt-2 space-y-1">
+                        <input
+                          type="text"
+                          placeholder="Description..."
+                          value={variable.description || ""}
+                          onChange={(e) => {
+                            const updatedVariables = [...variables];
+                            updatedVariables[index] = {
+                              ...variable,
+                              description: e.target.value,
+                            };
+                            setVariables(updatedVariables);
+                          }}
+                          className="w-full text-xs px-2 py-1 border border-yellow-300 rounded focus:outline-none focus:border-yellow-500"
+                        />
+                        <div className="flex gap-1">
+                          <select
+                            value={variable.type}
+                            onChange={(e) => {
+                              const updatedVariables = [...variables];
+                              updatedVariables[index] = {
+                                ...variable,
+                                type: e.target.value as any,
+                              };
+                              setVariables(updatedVariables);
+                            }}
+                            className="text-xs px-1 py-1 border border-yellow-300 rounded focus:outline-none focus:border-yellow-500"
+                          >
+                            <option value="text">Text</option>
+                            <option value="email">Email</option>
+                            <option value="url">URL</option>
+                            <option value="number">Number</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Default value..."
+                            value={variable.defaultValue || ""}
+                            onChange={(e) => {
+                              const updatedVariables = [...variables];
+                              updatedVariables[index] = {
+                                ...variable,
+                                defaultValue: e.target.value,
+                              };
+                              setVariables(updatedVariables);
+                            }}
+                            className="flex-1 text-xs px-2 py-1 border border-yellow-300 rounded focus:outline-none focus:border-yellow-500"
+                          />
+                          <button
+                            onClick={() => {
+                              const updatedVariables = variables.filter(
+                                (_, i) => i !== index
+                              );
+                              setVariables(updatedVariables);
+                            }}
+                            className="text-xs text-red-600 hover:text-red-800 px-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              {!showVariablePanel && variables.length > 3 && (
+                <div className="text-xs text-gray-500 text-center">
+                  +{variables.length - 3} more variables...
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500 text-center py-4 border border-dashed border-gray-300 rounded">
+              <p>No variables detected</p>
+              <p className="mt-1">Use {`{{variable_name}}`} in your content</p>
+            </div>
+          )}
+
+          {showVariablePanel && (
+            <div className="mt-3">
+              <button
+                onClick={() => {
+                  const newVarName = prompt("Enter variable name:");
+                  if (
+                    newVarName &&
+                    !variables.find((v) => v.name === newVarName)
+                  ) {
+                    setVariables((prev) => [
+                      ...prev,
+                      {
+                        name: newVarName.replace(/\s+/g, "_").toLowerCase(),
+                        type: "text",
+                        defaultValue: "",
+                        description: "",
+                        required: false,
+                      },
+                    ]);
+                  }
+                }}
+                className="w-full text-xs bg-green-100 text-green-700 px-2 py-2 rounded hover:bg-green-200 border border-green-300"
+              >
+                + Add Custom Variable
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Editor Area */}
@@ -686,12 +1016,41 @@ export const EmailEditor: React.FC = () => {
                 {previewMode ? "Edit" : "Preview"}
               </button>
 
+              {previewMode && (
+                <button
+                  onClick={() => setMobilePreview(!mobilePreview)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    mobilePreview
+                      ? "bg-purple-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  📱 {mobilePreview ? "Desktop" : "Mobile"}
+                </button>
+              )}
+
               <button
-                onClick={exportEmail}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                onClick={() => setShowSaveModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <DocumentArrowDownIcon className="w-4 h-4" />
-                Export
+                💾 Save Template
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={exportEmail}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <DocumentArrowDownIcon className="w-4 h-4" />
+                  Export HTML
+                </button>
+              </div>
+
+              <button
+                onClick={exportAsJSON}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                📄 JSON
               </button>
             </div>
           </div>
@@ -702,10 +1061,20 @@ export const EmailEditor: React.FC = () => {
           <div className="max-w-2xl mx-auto">
             {previewMode ? (
               /* Preview Mode */
-              <div
-                className="bg-white p-6 rounded-lg shadow-sm border"
-                dangerouslySetInnerHTML={{ __html: generateEmailHTML() }}
-              />
+              <div className="flex justify-center">
+                <div
+                  className={`bg-white rounded-lg shadow-sm border transition-all duration-300 ${
+                    mobilePreview
+                      ? "w-80 p-4" // Mobile width
+                      : "w-full max-w-2xl p-6" // Desktop width
+                  }`}
+                >
+                  <div
+                    className={mobilePreview ? "text-sm" : ""}
+                    dangerouslySetInnerHTML={{ __html: generateEmailHTML() }}
+                  />
+                </div>
+              </div>
             ) : (
               /* Edit Mode */
               <div className="bg-white p-6 rounded-lg shadow-sm border min-h-96">
@@ -742,6 +1111,93 @@ export const EmailEditor: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Save Template Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Save as Template</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Template Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Newsletter Template v1"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Email subject line"
+                  />
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  <p>Template will include:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>{blocks.length} email blocks</li>
+                    <li>{variables.length} template variables</li>
+                    <li>Complete HTML structure</li>
+                    <li>All styling and formatting</li>
+                  </ul>
+                  {variables.length > 0 && (
+                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                      <p className="text-xs font-medium text-yellow-800 mb-1">
+                        Variables:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {variables.map((variable) => (
+                          <code
+                            key={variable.name}
+                            className="text-xs bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded"
+                          >
+                            {`{{${variable.name}}}`}
+                          </code>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowSaveModal(false);
+                    setTemplateName("");
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveAsTemplate}
+                  disabled={!templateName.trim() || saving}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? "Saving..." : "Save Template"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

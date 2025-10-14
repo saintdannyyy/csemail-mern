@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { X, Mail, Users, Settings, Eye, Plus } from "lucide-react";
 import { ContactListManagerModal } from "../Contact/ContactListManagerModal";
-
+const compname = import.meta.env.VITE_COMPANY_NAME;
+const support = import.meta.env.VITE_SUPPORT_EMAIL;
+const noreply = import.meta.env.VITE_DEFAULT_FROM_EMAIL;
 interface Template {
   _id: string;
   name: string;
@@ -89,31 +91,52 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
 
   const fetchEmailDefaults = async () => {
     try {
-      const response = await fetch("/api/settings/email-defaults", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
+      const response = await (
+        await import("../../utils/apiClient")
+      ).apiClient.get("/api/settings/email-defaults");
 
-      if (response.ok) {
-        const defaults = await response.json();
-        console.log("Email defaults loaded:", defaults);
+      if (response) {
+        console.log("Email defaults loaded:", response);
         setFormData((prev) => ({
           ...prev,
-          fromName: defaults.fromName || "",
-          fromEmail: defaults.fromEmail || "",
-          replyToEmail: defaults.replyToEmail || "",
+          fromName:
+            (response as any).fromName ||
+            import.meta.env.VITE_DEFAULT_FROM_NAME ||
+            compname ||
+            "",
+          fromEmail:
+            (response as any).fromEmail ||
+            import.meta.env.VITE_DEFAULT_FROM_EMAIL ||
+            noreply ||
+            "",
+          replyToEmail:
+            (response as any).replyToEmail ||
+            import.meta.env.VITE_SUPPORT_EMAIL ||
+            support ||
+            "",
         }));
       } else {
-        console.error(
-          "Failed to fetch email defaults - Status:",
-          response.status
-        );
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
+        // Fallback to environment variables if API fails
+        console.log("Using environment variable defaults");
+        setFormData((prev) => ({
+          ...prev,
+          fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || compname || "",
+          fromEmail: import.meta.env.VITE_DEFAULT_FROM_EMAIL || noreply || "",
+          replyToEmail: import.meta.env.VITE_SUPPORT_EMAIL || support || "",
+        }));
       }
     } catch (error) {
-      console.error("Failed to fetch email defaults:", error);
+      console.error(
+        "Failed to fetch email defaults, using environment variables:",
+        error
+      );
+      // Fallback to environment variables
+      setFormData((prev) => ({
+        ...prev,
+        fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || compname || "",
+        fromEmail: import.meta.env.VITE_DEFAULT_FROM_EMAIL || noreply || "",
+        replyToEmail: import.meta.env.VITE_SUPPORT_EMAIL || support || "",
+      }));
     }
   };
 
@@ -162,6 +185,52 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
           newErrors.fromEmail = "From email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.fromEmail)) {
           newErrors.fromEmail = "Invalid email format";
+        }
+
+        // Validate template variables
+        if (selectedTemplate && selectedTemplate.variables) {
+          const missingRequired = selectedTemplate.variables.filter(
+            (variable) =>
+              variable.required && !formData.variables[variable.name]?.trim()
+          );
+
+          if (missingRequired.length > 0) {
+            newErrors.variables = `Required variables missing: ${missingRequired
+              .map((v) => v.name)
+              .join(", ")}`;
+          }
+
+          // Validate variable types
+          selectedTemplate.variables.forEach((variable) => {
+            const value = formData.variables[variable.name];
+            if (value && value.trim()) {
+              switch (variable.type) {
+                case "email":
+                  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    newErrors[
+                      `variable_${variable.name}`
+                    ] = `${variable.name} must be a valid email`;
+                  }
+                  break;
+                case "url":
+                  try {
+                    new URL(value);
+                  } catch {
+                    newErrors[
+                      `variable_${variable.name}`
+                    ] = `${variable.name} must be a valid URL`;
+                  }
+                  break;
+                case "number":
+                  if (isNaN(Number(value))) {
+                    newErrors[
+                      `variable_${variable.name}`
+                    ] = `${variable.name} must be a number`;
+                  }
+                  break;
+              }
+            }
+          });
         }
         break;
       case 3:
@@ -216,6 +285,29 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
     }));
   };
 
+  // Function to preview content with variables replaced
+  const getVariablePreview = (content: string): string => {
+    let previewContent = content;
+
+    // Replace variables with actual values or placeholders
+    Object.entries(formData.variables).forEach(([key, value]) => {
+      const placeholder = value.trim() || `[${key}]`;
+      const variableRegex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
+      previewContent = previewContent.replace(variableRegex, placeholder);
+    });
+
+    // Show remaining unreplaced variables
+    const remainingVars = previewContent.match(/\{\{[^}]+\}\}/g);
+    if (remainingVars) {
+      remainingVars.forEach((variable) => {
+        const varName = variable.replace(/[{}]/g, "").trim();
+        previewContent = previewContent.replace(variable, `[${varName}]`);
+      });
+    }
+
+    return previewContent;
+  };
+
   const handleContactListToggle = (listId: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -231,29 +323,43 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
   };
 
   const handlePreview = async () => {
-    if (!formData.templateId) return;
+    if (!formData.templateId || !selectedTemplate) return;
 
     try {
       setLoading(true);
-      // Create a temporary campaign to preview
-      const tempCampaign = await (
-        await import("../../utils/apiClient")
-      ).apiClient.createCampaign({
-        ...formData,
-        status: "draft",
-      });
 
-      const preview = await (
-        await import("../../utils/apiClient")
-      ).apiClient.previewCampaign(tempCampaign._id, formData.variables, {
+      // Generate preview content directly from template and variables
+      let previewContent = selectedTemplate.content || "";
+
+      // Replace variables with actual values or sample data
+      const sampleData = {
         first_name: "John",
         last_name: "Doe",
         email: "john@example.com",
+        company_name: "Sample Company",
+        ...formData.variables,
+      };
+
+      // Replace all variables in the content
+      Object.entries(sampleData).forEach(([key, value]) => {
+        const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
+        previewContent = previewContent.replace(regex, value || `[${key}]`);
       });
 
-      setPreviewHtml(preview.content);
+      // Replace any remaining unreplaced variables with placeholder text
+      previewContent = previewContent.replace(
+        /\{\{([^}]+)\}\}/g,
+        (_match: string, varName: string) => {
+          return `[${varName.trim()}]`;
+        }
+      );
+
+      setPreviewHtml(previewContent);
     } catch (error) {
       console.error("Preview failed:", error);
+      setPreviewHtml(
+        "<p>Preview generation failed. Please check your template.</p>"
+      );
     } finally {
       setLoading(false);
     }
@@ -264,34 +370,87 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
 
     try {
       setLoading(true);
+
+      // First create the campaign
       const campaign = await (
         await import("../../utils/apiClient")
       ).apiClient.createCampaign({
         ...formData,
-        status: isDraft ? "draft" : "sending",
+        status: isDraft ? "draft" : "sending", // Use "sending" status for immediate sending
       });
 
-      onCampaignCreated(campaign);
-      onClose();
+      // If not a draft, actually send the campaign
+      if (!isDraft) {
+        console.log(
+          `Sending campaign ${
+            campaign._id || campaign.id
+          } to ${totalRecipients} recipients...`
+        );
 
-      // Reset form
-      setFormData({
-        name: "",
-        subject: "",
-        fromName: "",
-        fromEmail: "",
-        replyToEmail: "",
-        preheader: "",
-        templateId: "",
-        htmlContent: "",
-        variables: {},
-        listIds: [],
-        scheduledAt: "",
-      });
-      setCurrentStep(1);
+        try {
+          const sendResult = await (
+            await import("../../utils/apiClient")
+          ).apiClient.sendCampaign(campaign._id || campaign.id, {
+            contactListIds: formData.listIds,
+            variables: formData.variables,
+            scheduleNow: true,
+          });
+
+          console.log("Campaign sent successfully:", sendResult);
+
+          // Show success message
+          setErrors({
+            submit: `Campaign sent successfully to ${totalRecipients} recipients!`,
+          });
+
+          // Wait a moment to show the success message
+          setTimeout(() => {
+            onCampaignCreated({ ...campaign, status: "sent", ...sendResult });
+            onClose();
+          }, 2000);
+        } catch (sendError) {
+          console.error("Failed to send campaign:", sendError);
+          setErrors({
+            submit: `Campaign created but failed to send: ${
+              (sendError as any).message ||
+              "Please try again from the campaigns list."
+            }`,
+          });
+
+          // Still notify parent about the created campaign
+          onCampaignCreated({ ...campaign, status: "draft" });
+          return; // Don't close modal yet so user can see the error
+        }
+      } else {
+        // For drafts, just notify and close
+        onCampaignCreated(campaign);
+        onClose();
+      }
+
+      // Reset form only if we're closing the modal
+      if (isDraft) {
+        setFormData({
+          name: "",
+          subject: "",
+          fromName: "",
+          fromEmail: "",
+          replyToEmail: "",
+          preheader: "",
+          templateId: "",
+          htmlContent: "",
+          variables: {},
+          listIds: [],
+          scheduledAt: "",
+        });
+        setCurrentStep(1);
+      }
     } catch (error) {
       console.error("Failed to create campaign:", error);
-      setErrors({ submit: "Failed to create campaign. Please try again." });
+      setErrors({
+        submit: `Failed to create campaign: ${
+          (error as any).message || "Please try again."
+        }`,
+      });
     } finally {
       setLoading(false);
     }
@@ -451,7 +610,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={formData.fromName}
+                    value={`${compname}` || formData.fromName}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
@@ -460,7 +619,8 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={
-                      formData.fromName ||
+                      import.meta.env.VITE_DEFAULT_FROM_NAME ||
+                      compname ||
                       "e.g., Codlogics Software Engineering"
                     }
                   />
@@ -486,7 +646,9 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={
-                      formData.fromEmail || "e.g., noreply@codlogics.com"
+                      import.meta.env.VITE_DEFAULT_FROM_EMAIL ||
+                      noreply ||
+                      "e.g., noreply@codlogics.com"
                     }
                   />
                   {errors.fromEmail && (
@@ -511,7 +673,9 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={
-                      formData.replyToEmail || "e.g., support@codlogics.com"
+                      import.meta.env.VITE_SUPPORT_EMAIL ||
+                      support ||
+                      "e.g., support@codlogics.com"
                     }
                   />
                 </div>
@@ -543,6 +707,13 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                     <h4 className="text-md font-medium text-gray-900 mb-3">
                       Template Variables
                     </h4>
+                    {errors.variables && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-red-600 text-sm">
+                          {errors.variables}
+                        </p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedTemplate.variables.map((variable) => (
                         <div key={variable.name}>
@@ -553,6 +724,11 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                             {variable.required && (
                               <span className="text-red-500 ml-1">*</span>
                             )}
+                            {variable.description && (
+                              <span className="text-gray-500 text-xs ml-2">
+                                ({variable.description})
+                              </span>
+                            )}
                           </label>
                           <input
                             type={
@@ -560,6 +736,8 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                                 ? "email"
                                 : variable.type === "url"
                                 ? "url"
+                                : variable.type === "number"
+                                ? "number"
                                 : "text"
                             }
                             value={formData.variables[variable.name] || ""}
@@ -569,16 +747,56 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                                 e.target.value
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                              errors[`variable_${variable.name}`]
+                                ? "border-red-300 focus:ring-red-500"
+                                : "border-gray-300 focus:ring-blue-500"
+                            }`}
                             placeholder={
                               variable.defaultValue ||
                               variable.description ||
                               `Enter ${variable.name}`
                             }
+                            required={variable.required}
                           />
+                          {errors[`variable_${variable.name}`] && (
+                            <p className="text-red-600 text-sm mt-1">
+                              {errors[`variable_${variable.name}`]}
+                            </p>
+                          )}
+                          {variable.type && (
+                            <p className="text-gray-500 text-xs mt-1">
+                              Expected type: {variable.type}
+                            </p>
+                          )}
+                          {formData.variables[variable.name] && (
+                            <div className="mt-1 p-2 bg-green-50 border border-green-200 rounded text-xs">
+                              <span className="text-green-700 font-medium">
+                                Preview:{" "}
+                              </span>
+                              <code className="text-green-800">
+                                {`{{${variable.name}}}}`} → "
+                                {formData.variables[variable.name]}"
+                              </code>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
+
+                    {/* Real-time subject preview with variables */}
+                    {Object.keys(formData.variables).some(
+                      (key) => formData.variables[key]
+                    ) && (
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h5 className="text-sm font-medium text-yellow-800 mb-2">
+                          Live Subject Preview:
+                        </h5>
+                        <div className="bg-white p-2 rounded border text-sm font-medium">
+                          {getVariablePreview(formData.subject)}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
             </div>
@@ -697,18 +915,55 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
 
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Preview</h4>
+
+                  {/* Variable Preview */}
+                  {selectedTemplate &&
+                    selectedTemplate.variables &&
+                    selectedTemplate.variables.length > 0 && (
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h5 className="text-sm font-medium text-blue-800 mb-2">
+                          Variable Preview
+                        </h5>
+                        <div className="space-y-1 text-xs">
+                          <div className="font-medium text-blue-700">
+                            Subject:
+                          </div>
+                          <div className="bg-white p-2 rounded border text-blue-900">
+                            {getVariablePreview(formData.subject)}
+                          </div>
+                          {selectedTemplate.content && (
+                            <>
+                              <div className="font-medium text-blue-700 mt-2">
+                                Content (first 200 chars):
+                              </div>
+                              <div className="bg-white p-2 rounded border text-blue-900">
+                                {getVariablePreview(
+                                  selectedTemplate.content
+                                ).substring(0, 200)}
+                                {selectedTemplate.content.length > 200 && "..."}
+                              </div>
+                            </>
+                          )}
+                          <div className="text-blue-600 text-xs mt-2">
+                            Variables in [brackets] will be replaced with actual
+                            values when sent.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                   <button
                     onClick={handlePreview}
                     disabled={loading}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 w-full"
                   >
-                    {loading ? "Loading..." : "Generate Preview"}
+                    {loading ? "Loading..." : "Generate Full Preview"}
                   </button>
 
                   {previewHtml && (
                     <div className="mt-3 border border-gray-200 rounded-lg overflow-hidden">
                       <div className="p-2 bg-gray-50 text-xs text-gray-600">
-                        Email Preview
+                        Full Email Preview
                       </div>
                       <div
                         className="p-4 max-h-40 overflow-y-auto text-xs"
@@ -720,7 +975,15 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
               </div>
 
               {errors.submit && (
-                <p className="text-red-600 text-sm">{errors.submit}</p>
+                <div
+                  className={`text-sm mt-4 p-3 rounded-lg ${
+                    errors.submit.includes("successfully")
+                      ? "text-green-700 bg-green-50 border border-green-200"
+                      : "text-red-600 bg-red-50 border border-red-200"
+                  }`}
+                >
+                  {errors.submit}
+                </div>
               )}
             </div>
           )}
@@ -761,7 +1024,9 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                   disabled={loading}
                   className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
-                  {loading ? "Sending..." : "Send Now"}
+                  {loading
+                    ? `Sending to ${totalRecipients} recipients...`
+                    : "Send Now"}
                 </button>
               </>
             )}

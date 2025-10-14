@@ -29,7 +29,16 @@ export const Campaigns: React.FC = () => {
         const response = await (
           await import("../utils/apiClient")
         ).apiClient.getCampaigns(1, 100);
-        setCampaigns(response.campaigns || response || []);
+
+        // Ensure campaigns have proper ID mapping
+        const mappedCampaigns = (response.campaigns || response || []).map(
+          (campaign: any, index: number) => ({
+            ...campaign,
+            id: campaign._id || campaign.id || `campaign-${index}`,
+          })
+        );
+
+        setCampaigns(mappedCampaigns);
       } catch (error) {
         console.error("Failed to fetch campaigns:", error);
         setError(
@@ -43,7 +52,13 @@ export const Campaigns: React.FC = () => {
   }, []);
 
   const handleCampaignCreated = (newCampaign: Campaign) => {
-    setCampaigns((prev) => [newCampaign, ...prev]);
+    // Ensure the new campaign has a proper ID
+    const mappedCampaign = {
+      ...newCampaign,
+      id:
+        (newCampaign as any)._id || newCampaign.id || `campaign-${Date.now()}`,
+    };
+    setCampaigns((prev) => [mappedCampaign, ...prev]);
   };
 
   const filteredCampaigns = campaigns.filter((campaign) => {
@@ -173,13 +188,13 @@ export const Campaigns: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr>
+                <tr key="loading">
                   <td colSpan={7} className="text-center py-8 text-gray-400">
                     <div className="animate-pulse">Loading campaigns...</div>
                   </td>
                 </tr>
               ) : error ? (
-                <tr>
+                <tr key="error">
                   <td colSpan={7} className="text-center py-8">
                     <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
                       {error}
@@ -196,7 +211,7 @@ export const Campaigns: React.FC = () => {
                   </td>
                 </tr>
               ) : filteredCampaigns.length === 0 ? (
-                <tr>
+                <tr key="empty">
                   <td colSpan={7} className="text-center py-8 text-gray-400">
                     {searchTerm || selectedFilter !== "all"
                       ? "No campaigns found matching your filters."

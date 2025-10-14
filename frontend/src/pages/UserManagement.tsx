@@ -532,7 +532,12 @@ export const UserManagement: React.FC = () => {
                       setNewUser((prev) => ({ ...prev, email: e.target.value }))
                     }
                     className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="user@codlogics.com"
+                    placeholder={`user@${
+                      import.meta.env.VITE_COMPANY_NAME?.toLowerCase().replace(
+                        /\s+/g,
+                        ""
+                      ) || "codlogics"
+                    }.com`}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
