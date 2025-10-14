@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "node test-connection.js"
+    "test": "node test-connection.js",
+    "init-settings": "node scripts/initialize-settings.js",
+    "test-smtp": "node scripts/test-smtp-integration.js"
   },
   "keywords": [
     "email",
