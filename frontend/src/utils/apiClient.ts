@@ -239,6 +239,10 @@ class ApiClient {
     return this.post('/api/campaigns', campaign);
   }
 
+  async sendCampaign(campaignId: string, options: any = {}): Promise<any> {
+    return this.post(`/api/campaigns/${campaignId}/send`, options);
+  }
+
   // Template methods
   async getTemplates(): Promise<any> {
     return this.get('/api/templates');

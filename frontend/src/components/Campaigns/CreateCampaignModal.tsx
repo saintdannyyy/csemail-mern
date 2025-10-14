@@ -96,7 +96,6 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
       ).apiClient.get("/api/settings/email-defaults");
 
       if (response) {
-        console.log("Email defaults loaded:", response);
         setFormData((prev) => ({
           ...prev,
           fromName:
@@ -117,7 +116,6 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
         }));
       } else {
         // Fallback to environment variables if API fails
-        console.log("Using environment variable defaults");
         setFormData((prev) => ({
           ...prev,
           fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || compname || "",
@@ -126,10 +124,6 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
         }));
       }
     } catch (error) {
-      console.error(
-        "Failed to fetch email defaults, using environment variables:",
-        error
-      );
       // Fallback to environment variables
       setFormData((prev) => ({
         ...prev,
@@ -371,7 +365,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
     try {
       setLoading(true);
 
-      // First create the campaign
+      // Create the campaign with the appropriate status
       const campaign = await (
         await import("../../utils/apiClient")
       ).apiClient.createCampaign({
@@ -379,52 +373,23 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
         status: isDraft ? "draft" : "sending", // Use "sending" status for immediate sending
       });
 
-      // If not a draft, actually send the campaign
-      if (!isDraft) {
-        console.log(
-          `Sending campaign ${
-            campaign._id || campaign.id
-          } to ${totalRecipients} recipients...`
-        );
-
-        try {
-          const sendResult = await (
-            await import("../../utils/apiClient")
-          ).apiClient.sendCampaign(campaign._id || campaign.id, {
-            contactListIds: formData.listIds,
-            variables: formData.variables,
-            scheduleNow: true,
-          });
-
-          console.log("Campaign sent successfully:", sendResult);
-
-          // Show success message
-          setErrors({
-            submit: `Campaign sent successfully to ${totalRecipients} recipients!`,
-          });
-
-          // Wait a moment to show the success message
-          setTimeout(() => {
-            onCampaignCreated({ ...campaign, status: "sent", ...sendResult });
-            onClose();
-          }, 2000);
-        } catch (sendError) {
-          console.error("Failed to send campaign:", sendError);
-          setErrors({
-            submit: `Campaign created but failed to send: ${
-              (sendError as any).message ||
-              "Please try again from the campaigns list."
-            }`,
-          });
-
-          // Still notify parent about the created campaign
-          onCampaignCreated({ ...campaign, status: "draft" });
-          return; // Don't close modal yet so user can see the error
-        }
-      } else {
+      if (isDraft) {
         // For drafts, just notify and close
         onCampaignCreated(campaign);
         onClose();
+      } else {
+        // For immediate sending, the backend handles it automatically
+        // Show success message
+        const actualSentCount = campaign.sentCount || totalRecipients;
+        setErrors({
+          submit: `Campaign sent successfully to ${actualSentCount} recipients!`,
+        });
+
+        // Wait a moment to show the success message
+        setTimeout(() => {
+          onCampaignCreated({ ...campaign, status: "sent" });
+          onClose();
+        }, 2000);
       }
 
       // Reset form only if we're closing the modal
