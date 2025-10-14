@@ -15,8 +15,11 @@ const authenticateToken = async (req, res, next) => {
 
   try {
     const jwtSecret = process.env.JWT_SECRET || "your-secret-key";
-    console.log("Auth middleware using JWT secret:", jwtSecret ? "SET" : "NOT SET");
-    
+    console.log(
+      "Auth middleware using JWT secret:",
+      jwtSecret ? "SET" : "NOT SET"
+    );
+
     const decoded = jwt.verify(token, jwtSecret);
 
     // Get user from database
@@ -36,8 +39,18 @@ const authenticateToken = async (req, res, next) => {
 const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      console.log(`Access denied for user ${req.user?.email} with role ${req.user?.role}. Required roles: ${roles.join(', ')}`);
-      return res.status(403).json({ error: "Insufficient permissions", requiredRoles: roles, userRole: req.user?.role });
+      console.log(
+        `Access denied for user ${req.user?.email} with role ${
+          req.user?.role
+        }. Required roles: ${roles.join(", ")}`
+      );
+      return res
+        .status(403)
+        .json({
+          error: "Insufficient permissions",
+          requiredRoles: roles,
+          userRole: req.user?.role,
+        });
     }
     next();
   };
