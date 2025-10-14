@@ -28,14 +28,17 @@ class ApiClient {
     return !!this.token;
   }
 
-  // Generic request method
+  /**
+   * Generic request method
+   * @param endpoint - API endpoint
+   * @param options - Request options
+   * @returns Promise resolving to response data
+   */
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
-    console.log('API Request:', { url, method: options.method, hasBody: !!options.body, bodyType: options.body?.constructor.name });
     
     // Use a plain object for headers to allow custom keys
     const headers: Record<string, string> = {
@@ -52,27 +55,6 @@ class ApiClient {
       headers["authorization"] = `Bearer ${this.token}`;
     }
 
-    console.log('Request headers:', headers);
-    
-    // Log FormData contents if it's FormData
-    if (options.body instanceof FormData) {
-      console.log('FormData entries being sent:');
-      for (let [key, value] of options.body.entries()) {
-        if (value instanceof File) {
-          console.log(`${key}:`, {
-            name: value.name,
-            size: value.size,
-            type: value.type,
-            lastModified: value.lastModified
-          });
-        } else {
-          console.log(`${key}:`, value);
-        }
-      }
-    } else {
-      console.log('Request body type:', options.body?.constructor.name);
-    }
-
     const config: RequestInit = {
       ...options,
       headers,
@@ -80,8 +62,6 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
-      console.log('Response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -98,7 +78,6 @@ class ApiClient {
       }
 
       const result = await response.json();
-      console.log('Success response:', result);
       return result;
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);
@@ -106,12 +85,21 @@ class ApiClient {
     }
   }
 
-  // GET request
+  /**
+   * HTTP GET request
+   * @param endpoint - API endpoint
+   * @returns Promise resolving to response data
+   */
   async get<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  // POST request
+  /**
+   * HTTP POST request
+   * @param endpoint - API endpoint
+   * @param data - Request body data
+   * @returns Promise resolving to response data
+   */
   async post<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
@@ -119,7 +107,12 @@ class ApiClient {
     });
   }
 
-  // PUT request
+  /**
+   * HTTP PUT request
+   * @param endpoint - API endpoint
+   * @param data - Request body data
+   * @returns Promise resolving to response data
+   */
   async put<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
@@ -127,7 +120,11 @@ class ApiClient {
     });
   }
 
-  // DELETE request
+  /**
+   * HTTP DELETE request
+   * @param endpoint - API endpoint
+   * @returns Promise resolving to response data
+   */
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
