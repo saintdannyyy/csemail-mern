@@ -26,9 +26,9 @@ async function getOrCreateSettings() {
         smtpPassword: process.env.SMTP_PASS || "",
         smtpSecure: process.env.SMTP_SECURE === "true",
         fromEmail: process.env.DEFAULT_FROM_EMAIL || "",
-        fromName: process.env.DEFAULT_FROM_NAME || "CSE Mail",
+        fromName: process.env.DEFAULT_FROM_NAME || "Emmisor",
         replyToEmail: process.env.SUPPORT_EMAIL || "",
-        systemName: "CSE Mail",
+        systemName: "Emmisor",
         timezone: "UTC",
         emailRateLimit: 5,
         batchSize: 1,
@@ -128,7 +128,7 @@ router.get(
         general: [
           {
             key: "systemName",
-            value: settings.systemName || "CSE Mail",
+            value: settings.systemName || "Emmisor",
             description: "System name",
           },
           {
