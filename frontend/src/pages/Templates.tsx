@@ -196,6 +196,11 @@ export const Templates: React.FC = () => {
     }
   };
 
+  const handleCreateTemplate = () => {
+    // Navigate to email editor with empty state for creating new template
+    navigate("/email-editor");
+  };
+
   const handleDeleteTemplate = async (template: EmailTemplate) => {
     setDeletingTemplate(template);
     setShowDeleteModal(true);
@@ -305,7 +310,10 @@ export const Templates: React.FC = () => {
           </div>
           {activeTab === "templates" && (
             <div className="flex space-x-3">
-              <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <button
+                onClick={handleCreateTemplate}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Template
               </button>
@@ -866,80 +874,119 @@ export const Templates: React.FC = () => {
                   {/* Template Details Card */}
                   <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                     <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="w-4 h-4 mr-2 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                       Template Details
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Subject</span>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          Subject
+                        </span>
                         <p className="text-sm text-gray-900 mt-1 font-medium">
                           {viewingTemplate.subject}
                         </p>
                       </div>
                       {viewingTemplate.description && (
                         <div>
-                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</span>
+                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            Description
+                          </span>
                           <p className="text-sm text-gray-700 mt-1">
                             {viewingTemplate.description}
                           </p>
                         </div>
                       )}
                       <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</span>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          Category
+                        </span>
                         <div className="mt-1">
                           <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
                             {viewingTemplate.category}
                           </span>
                         </div>
                       </div>
-                      {viewingTemplate.tags && viewingTemplate.tags.length > 0 && (
-                        <div>
-                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tags</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {viewingTemplate.tags.map((tag, index) => (
-                              <span
-                                key={index}
-                                className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded"
-                              >
-                                {tag}
-                              </span>
-                            ))}
+                      {viewingTemplate.tags &&
+                        viewingTemplate.tags.length > 0 && (
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                              Tags
+                            </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {viewingTemplate.tags.map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
 
                   {/* Statistics Card */}
                   <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                     <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      <svg
+                        className="w-4 h-4 mr-2 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
                       </svg>
                       Statistics
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Times Used</span>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          Times Used
+                        </span>
                         <p className="text-xl font-bold text-gray-900 mt-1">
                           {viewingTemplate.timesUsed || 0}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</span>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          Created
+                        </span>
                         <p className="text-sm text-gray-700 mt-1">
                           {viewingTemplate.createdAt
-                            ? new Date(viewingTemplate.createdAt).toLocaleDateString()
+                            ? new Date(
+                                viewingTemplate.createdAt
+                              ).toLocaleDateString()
                             : "Unknown"}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Last Modified</span>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          Last Modified
+                        </span>
                         <p className="text-sm text-gray-700 mt-1">
                           {viewingTemplate.updatedAt
-                            ? new Date(viewingTemplate.updatedAt).toLocaleDateString()
+                            ? new Date(
+                                viewingTemplate.updatedAt
+                              ).toLocaleDateString()
                             : "Unknown"}
                         </p>
                       </div>
@@ -956,15 +1003,29 @@ export const Templates: React.FC = () => {
                   {/* Variables Card */}
                   <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                     <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17v4a2 2 0 002 2h4M11 7l1.5 1.5" />
+                      <svg
+                        className="w-4 h-4 mr-2 text-orange-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17v4a2 2 0 002 2h4M11 7l1.5 1.5"
+                        />
                       </svg>
                       Variables ({viewingTemplate.variables?.length || 0})
                     </h4>
-                    {viewingTemplate.variables && viewingTemplate.variables.length > 0 ? (
+                    {viewingTemplate.variables &&
+                    viewingTemplate.variables.length > 0 ? (
                       <div className="space-y-2 max-h-32 overflow-y-auto">
                         {viewingTemplate.variables.map((variable, index) => (
-                          <div key={index} className="bg-orange-50 border border-orange-200 rounded p-2">
+                          <div
+                            key={index}
+                            className="bg-orange-50 border border-orange-200 rounded p-2"
+                          >
                             <code className="text-xs font-mono text-orange-800 block">
                               {`{{${variable.name}}}`}
                             </code>
@@ -977,7 +1038,9 @@ export const Templates: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No variables defined</p>
+                      <p className="text-sm text-gray-500">
+                        No variables defined
+                      </p>
                     )}
                   </div>
                 </div>
@@ -986,8 +1049,18 @@ export const Templates: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-lg font-semibold text-gray-800 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      <svg
+                        className="w-5 h-5 mr-2 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
                       </svg>
                       Email Preview
                     </h4>
@@ -997,24 +1070,45 @@ export const Templates: React.FC = () => {
                       </summary>
                       <div className="absolute right-0 mt-2 w-96 z-10 bg-gray-900 text-gray-100 p-4 rounded-lg shadow-xl border">
                         <pre className="text-xs whitespace-pre-wrap max-h-64 overflow-auto">
-                          {viewingTemplate.content || viewingTemplate.htmlContent || "No content available"}
+                          {viewingTemplate.content ||
+                            viewingTemplate.htmlContent ||
+                            "No content available"}
                         </pre>
                       </div>
                     </details>
                   </div>
-                  
+
                   <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white">
                     {/* Email Header */}
                     <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                       <div className="flex items-center space-x-4">
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-gray-600">Subject:</span>
-                          <span className="text-sm text-gray-900 ml-2 font-medium">{viewingTemplate.subject}</span>
+                          <span className="text-sm font-medium text-gray-600">
+                            Subject:
+                          </span>
+                          <span className="text-sm text-gray-900 ml-2 font-medium">
+                            {viewingTemplate.subject}
+                          </span>
                         </div>
                         <div className="flex items-center space-x-2 text-xs text-gray-500">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
                           </svg>
                           <span>Preview</span>
                         </div>
@@ -1024,7 +1118,11 @@ export const Templates: React.FC = () => {
                     {/* Email Body */}
                     <div className="bg-white">
                       <iframe
-                        srcDoc={viewingTemplate.content || viewingTemplate.htmlContent || ""}
+                        srcDoc={
+                          viewingTemplate.content ||
+                          viewingTemplate.htmlContent ||
+                          ""
+                        }
                         className="w-full h-[500px] border-0"
                         title="Email Preview"
                         sandbox="allow-same-origin"
