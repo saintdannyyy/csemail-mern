@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Mail, Users, Settings, Eye, Plus } from "lucide-react";
 import { ContactListManagerModal } from "../Contact/ContactListManagerModal";
-const compname = import.meta.env.VITE_COMPANY_NAME;
+const fromName = import.meta.env.VITE_COMPANY_NAME;
 const support = import.meta.env.VITE_SUPPORT_EMAIL;
 const noreply = import.meta.env.VITE_DEFAULT_FROM_EMAIL;
 interface Template {
@@ -101,7 +101,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
           fromName:
             (response as any).fromName ||
             import.meta.env.VITE_DEFAULT_FROM_NAME ||
-            compname ||
+            fromName ||
             "",
           fromEmail:
             (response as any).fromEmail ||
@@ -118,7 +118,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
         // Fallback to environment variables if API fails
         setFormData((prev) => ({
           ...prev,
-          fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || compname || "",
+          fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || fromName || "",
           fromEmail: import.meta.env.VITE_DEFAULT_FROM_EMAIL || noreply || "",
           replyToEmail: import.meta.env.VITE_SUPPORT_EMAIL || support || "",
         }));
@@ -127,7 +127,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
       // Fallback to environment variables
       setFormData((prev) => ({
         ...prev,
-        fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || compname || "",
+        fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || fromName || "",
         fromEmail: import.meta.env.VITE_DEFAULT_FROM_EMAIL || noreply || "",
         replyToEmail: import.meta.env.VITE_SUPPORT_EMAIL || support || "",
       }));
@@ -575,7 +575,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={`${compname}` || formData.fromName}
+                    value={`${fromName}` || formData.fromName}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
@@ -585,7 +585,7 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={
                       import.meta.env.VITE_DEFAULT_FROM_NAME ||
-                      compname ||
+                      fromName ||
                       "e.g., Codlogics Software Engineering"
                     }
                   />
