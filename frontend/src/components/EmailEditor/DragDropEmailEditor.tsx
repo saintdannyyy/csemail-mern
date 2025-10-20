@@ -203,17 +203,31 @@ export const DragDropEmailEditor = () => {
     `;
   };
 
-  const handleSaveTemplate = () => {
-    const templateData = {
-      name: templateName,
-      subject: emailSubject,
-      content: generateEmailHTML(),
-      components: components,
-    };
+  const handleSaveTemplate = async () => {
+    try {
+      const templateData = {
+        name: templateName,
+        subject: emailSubject,
+        content: generateEmailHTML(),
+        description: `Created with drag-and-drop editor`,
+        category: "other",
+        tags: ["drag-drop"],
+        variables: [], // Will be auto-detected by backend if needed
+      };
 
-    // Here you would typically save to your backend
-    console.log("Saving template:", templateData);
-    alert("Template saved successfully!");
+      // Call the backend API to save the template
+      const { apiClient } = await import("../../utils/apiClient");
+      const savedTemplate = await apiClient.createTemplate(templateData);
+
+      // Show success message
+      alert("Template saved successfully!");
+
+      // Navigate back to templates page
+      navigate("/templates");
+    } catch (error) {
+      console.error("Failed to save template:", error);
+      alert(`Failed to save template: ${error.message || "Unknown error"}`);
+    }
   };
 
   const handleExportHTML = () => {

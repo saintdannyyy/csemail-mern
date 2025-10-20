@@ -29,7 +29,18 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://csemail.vercel.app/",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
 app.use(morgan("combined"));
 app.use(express.urlencoded({ extended: true }));
 // app.use(express.json());
@@ -44,7 +55,7 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api/queue", queueRoutes);
+app.use("/api/queue", queueRoutesdnfjds);
 app.use("/api/users", userRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/audit", auditRoutes);
