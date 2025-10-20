@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { X, Mail, Users, Settings, Eye, Plus } from "lucide-react";
 import { ContactListManagerModal } from "../Contact/ContactListManagerModal";
-const fromName = import.meta.env.VITE_COMPANY_NAME;
-const support = import.meta.env.VITE_SUPPORT_EMAIL;
+const fromName = import.meta.env.VITE_DEFAULT_FROM_NAME;
+
+const support = import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL;
 const noreply = import.meta.env.VITE_DEFAULT_FROM_EMAIL;
 interface Template {
   _id: string;
@@ -100,21 +101,9 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
       if (response) {
         setFormData((prev) => ({
           ...prev,
-          fromName:
-            (response as any).fromName ||
-            import.meta.env.VITE_DEFAULT_FROM_NAME ||
-            fromName ||
-            "",
-          fromEmail:
-            (response as any).fromEmail ||
-            import.meta.env.VITE_DEFAULT_FROM_EMAIL ||
-            noreply ||
-            "",
-          replyToEmail:
-            (response as any).replyToEmail ||
-            import.meta.env.VITE_SUPPORT_EMAIL ||
-            support ||
-            "",
+          fromName: (response as any).fromName || "from",
+          fromEmail: (response as any).fromEmail || noreply || "",
+          replyToEmail: (response as any).replyToEmail || support || "",
         }));
       } else {
         // Fallback to environment variables if API fails
@@ -122,7 +111,8 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
           ...prev,
           fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || fromName || "",
           fromEmail: import.meta.env.VITE_DEFAULT_FROM_EMAIL || noreply || "",
-          replyToEmail: import.meta.env.VITE_SUPPORT_EMAIL || support || "",
+          replyToEmail:
+            import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL || support || "",
         }));
       }
     } catch (error) {
@@ -131,7 +121,8 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
         ...prev,
         fromName: import.meta.env.VITE_DEFAULT_FROM_NAME || fromName || "",
         fromEmail: import.meta.env.VITE_DEFAULT_FROM_EMAIL || noreply || "",
-        replyToEmail: import.meta.env.VITE_SUPPORT_EMAIL || support || "",
+        replyToEmail:
+          import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL || support || "",
       }));
     }
   };
