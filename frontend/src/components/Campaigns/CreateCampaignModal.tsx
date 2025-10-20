@@ -89,6 +89,8 @@ export const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
     }
   }, [isOpen]);
 
+  // const fetch
+
   const fetchEmailDefaults = async () => {
     try {
       const response = await (

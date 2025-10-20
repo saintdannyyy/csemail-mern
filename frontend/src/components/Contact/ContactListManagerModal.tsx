@@ -2,6 +2,21 @@ import React, { useState, useEffect } from "react";
 import { X, Plus, Edit, Trash2, Users } from "lucide-react";
 import { ContactListContactsModal } from "./ContactListContactsModal";
 
+// interface Contact {
+//   id: string;
+//   _id?: string;
+//   email: string;
+//   firstName?: string;
+//   lastName?: string;
+//   phone?: string;
+//   tags: string[];
+//   customFields: Record<string, string>;
+//   status: 'active' | 'unsubscribed' | 'bounced' | 'complained';
+//   listIds: string[];
+//   createdAt: string;
+//   updatedAt: string;
+// }
+
 interface ContactList {
   _id: string;
   name: string;
@@ -35,6 +50,7 @@ export const ContactListManagerModal: React.FC<
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [contactsModalOpen, setContactsModalOpen] = useState(false);
   const [selectedListForContacts, setSelectedListForContacts] = useState<ContactList | null>(null);
+  // const [contactsInList, setContactsInList] = useState<any[]>([]); 
 
   useEffect(() => {
     if (isOpen) {
@@ -55,6 +71,15 @@ export const ContactListManagerModal: React.FC<
       setLoading(false);
     }
   };
+
+  // const handleChildContacts = ( allContacts: any) => {
+  //   // Filter contacts that are in this specific list
+  //   const contactsInThisList = allContacts.filter((contact: Contact) =>
+  //     contact.listIds.includes(contactLists.map(list => list._id))
+  //   );
+  //   setContactsInList(contactsInThisList);
+  // };
+
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -302,6 +327,7 @@ export const ContactListManagerModal: React.FC<
                       <p className="text-xs text-gray-400 mt-1">
                         {list.contactCount} contact
                         {list.contactCount !== 1 ? "s" : ""}
+                       
                       </p>
                     </div>
 
@@ -354,6 +380,7 @@ export const ContactListManagerModal: React.FC<
         onClose={handleContactsModalClose}
         contactList={selectedListForContacts}
         onContactListUpdated={fetchContactLists}
+        // sendToParent={handleChildContacts}
       />
     </div>
   );
