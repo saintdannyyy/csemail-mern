@@ -97,9 +97,24 @@ class ApiClient {
         throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
-      console.log('Success response:', result);
-      return result;
+      // Handle responses that don't have content (like DELETE operations)
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        console.log('Success response: No content');
+        return {} as T;
+      }
+
+      // Check if response has content to parse
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const result = await response.json();
+        console.log('Success response:', result);
+        return result;
+      } else {
+        // For non-JSON responses, return the text content
+        const result = await response.text();
+        console.log('Success response (text):', result);
+        return result as T;
+      }
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);
       throw error;
@@ -238,8 +253,40 @@ class ApiClient {
     return this.get(`/api/campaigns?page=${page}&limit=${limit}`);
   }
 
+  async getCampaign(id: string): Promise<any> {
+    return this.get(`/api/campaigns/${id}`);
+  }
+
   async createCampaign(campaign: any): Promise<any> {
     return this.post('/api/campaigns', campaign);
+  }
+
+  async updateCampaign(id: string, campaign: any): Promise<any> {
+    return this.put(`/api/campaigns/${id}`, campaign);
+  }
+
+  async deleteCampaign(id: string): Promise<any> {
+    return this.delete(`/api/campaigns/${id}`);
+  }
+
+  async duplicateCampaign(id: string): Promise<any> {
+    return this.post(`/api/campaigns/${id}/duplicate`);
+  }
+
+  async sendCampaign(id: string): Promise<any> {
+    return this.post(`/api/campaigns/${id}/send`);
+  }
+
+  async pauseCampaign(id: string): Promise<any> {
+    return this.post(`/api/campaigns/${id}/pause`);
+  }
+
+  async resumeCampaign(id: string): Promise<any> {
+    return this.post(`/api/campaigns/${id}/resume`);
+  }
+
+  async getCampaignReport(id: string): Promise<any> {
+    return this.get(`/api/campaigns/${id}/report`);
   }
 
   // Template methods

@@ -28,6 +28,7 @@ interface ContactListContactsModalProps {
   onClose: () => void;
   contactList: ContactList | null;
   onContactListUpdated?: () => void;
+ 
 }
 
 export const ContactListContactsModal: React.FC<ContactListContactsModalProps> = ({
@@ -35,6 +36,7 @@ export const ContactListContactsModal: React.FC<ContactListContactsModalProps> =
   onClose,
   contactList,
   onContactListUpdated,
+
 }) => {
   const [contactsInList, setContactsInList] = useState<Contact[]>([]);
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
@@ -92,6 +94,7 @@ export const ContactListContactsModal: React.FC<ContactListContactsModalProps> =
       );
       
       setContactsInList(contactsInThisList);
+      
       
     } catch (error) {
       console.error("Failed to fetch contacts:", error);

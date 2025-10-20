@@ -11,6 +11,12 @@ import {
 } from "lucide-react";
 import { Campaign } from "../types";
 import { CreateCampaignModal } from "../components/Campaigns/CreateCampaignModal";
+import { EditCampaignModal } from "../components/Campaigns/EditCampaignModal";
+import { DeleteCampaignModal } from "../components/Campaigns/DeleteCampaignModal";
+import { CampaignPreviewModal } from "../components/Campaigns/CampaignPreviewModal";
+import { CampaignReportModal } from "../components/Campaigns/CampaignReportModal";
+import { SendCampaignModal } from "../components/Campaigns/SendCampaignModal";
+import { DuplicateCampaignModal } from "../components/Campaigns/DuplicateCampaignModal";
 
 export const Campaigns: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +26,15 @@ export const Campaigns: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Modal states
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -59,6 +74,54 @@ export const Campaigns: React.FC = () => {
         (newCampaign as any)._id || newCampaign.id || `campaign-${Date.now()}`,
     };
     setCampaigns((prev) => [mappedCampaign, ...prev]);
+  };
+
+  // Modal handlers
+  const handleEditCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowDeleteModal(true);
+  };
+
+  const handlePreviewCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowPreviewModal(true);
+  };
+
+  const handleReportCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowReportModal(true);
+  };
+
+  const handleSendCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowSendModal(true);
+  };
+
+  const handleDuplicateCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowDuplicateModal(true);
+  };
+
+  // Update handlers
+  const handleCampaignUpdated = (updatedCampaign: Campaign) => {
+    setCampaigns((prev) =>
+      prev.map((campaign) =>
+        campaign.id === updatedCampaign.id ? updatedCampaign : campaign
+      )
+    );
+  };
+
+  const handleCampaignDeleted = (deletedCampaignId: string) => {
+    setCampaigns((prev) => prev.filter((campaign) => campaign.id !== deletedCampaignId));
+  };
+
+  const handleCampaignDuplicated = (newCampaign: Campaign) => {
+    setCampaigns((prev) => [newCampaign, ...prev]);
   };
 
   const filteredCampaigns = campaigns.filter((campaign) => {
@@ -281,43 +344,49 @@ export const Campaigns: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         {campaign.status === "draft" && (
                           <button
-                            className="text-green-600 hover:text-green-900"
-                            title="Send"
+                            onClick={() => handleSendCampaign(campaign)}
+                            className="text-green-600 hover:text-green-900 transition-colors"
+                            title="Send Campaign"
                           >
                             <Send className="h-4 w-4" />
                           </button>
                         )}
                         <button
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Preview"
+                          onClick={() => handlePreviewCampaign(campaign)}
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                          title="Preview Campaign"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         {campaign.status === "sent" && (
                           <button
-                            className="text-purple-600 hover:text-purple-900"
-                            title="Report"
+                            onClick={() => handleReportCampaign(campaign)}
+                            className="text-purple-600 hover:text-purple-900 transition-colors"
+                            title="View Report"
                           >
                             <BarChart3 className="h-4 w-4" />
                           </button>
                         )}
-                        <button
-                          className="text-gray-600 hover:text-gray-900"
-                          title="Duplicate"
+                        {/* <button
+                          onClick={() => handleDuplicateCampaign(campaign)}
+                          className="text-gray-600 hover:text-gray-900 transition-colors"
+                          title="Duplicate Campaign"
                         >
                           <Copy className="h-4 w-4" />
-                        </button>
+                        </button> */}
                         {campaign.status === "draft" && (
                           <button
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Edit"
+                            onClick={() => handleEditCampaign(campaign)}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            title="Edit Campaign"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                         )}
                         <button
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
+                          onClick={() => handleDeleteCampaign(campaign)}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                          title="Delete Campaign"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -337,6 +406,64 @@ export const Campaigns: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onCampaignCreated={handleCampaignCreated}
       />
+
+      {/* Edit Campaign Modal */}
+      {selectedCampaign && (
+        <EditCampaignModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          campaign={selectedCampaign}
+          onCampaignUpdated={handleCampaignUpdated}
+        />
+      )}
+
+      {/* Delete Campaign Modal */}
+      {selectedCampaign && (
+        <DeleteCampaignModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          campaign={selectedCampaign}
+          onCampaignDeleted={handleCampaignDeleted}
+        />
+      )}
+
+      {/* Preview Campaign Modal */}
+      {selectedCampaign && (
+        <CampaignPreviewModal
+          isOpen={showPreviewModal}
+          onClose={() => setShowPreviewModal(false)}
+          campaign={selectedCampaign}
+        />
+      )}
+
+      {/* Report Campaign Modal */}
+      {selectedCampaign && (
+        <CampaignReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          campaign={selectedCampaign}
+        />
+      )}
+
+      {/* Send Campaign Modal */}
+      {selectedCampaign && (
+        <SendCampaignModal
+          isOpen={showSendModal}
+          onClose={() => setShowSendModal(false)}
+          campaign={selectedCampaign}
+          onCampaignSent={handleCampaignUpdated}
+        />
+      )}
+
+      {/* Duplicate Campaign Modal */}
+      {selectedCampaign && (
+        <DuplicateCampaignModal
+          isOpen={showDuplicateModal}
+          onClose={() => setShowDuplicateModal(false)}
+          campaign={selectedCampaign}
+          onCampaignDuplicated={handleCampaignDuplicated}
+        />
+      )}
     </div>
   );
 };

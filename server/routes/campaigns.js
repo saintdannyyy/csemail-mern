@@ -265,6 +265,33 @@ router.post(
   }
 );
 
+//Delete campaign
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireRole(["admin", "editor"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Get campaign
+      const campaign = await Campaign.findById(id);
+
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+
+      // Delete campaign
+      await Campaign.findByIdAndDelete(id);
+
+      res.status(204).json("Campaign deleted");
+    } catch (error) {
+      console.error("Delete campaign error:", error);
+      res.status(500).json({ error: "Failed to delete campaign" });
+    }
+  }
+);
+
 // Send campaign
 router.post(
   "/:id/send",
