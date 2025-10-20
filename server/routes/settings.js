@@ -374,7 +374,7 @@ router.post(
 
         // Log audit event
         await AuditLog.create({
-          userId: req.user.userId,
+          userId: req.user._id,
           action: "smtp_test_performed",
           targetType: "system",
           details: {
@@ -400,7 +400,7 @@ router.post(
 
         // Log failed test
         await AuditLog.create({
-          userId: req.user.userId,
+          userId: req.user._id,
           action: "smtp_test_failed",
           targetType: "system",
           details: { testEmail, error: smtpError.message },
@@ -414,6 +414,10 @@ router.post(
             host: settings.smtpHost,
             port: settings.smtpPort,
             secure: settings.smtpSecure,
+            suggestion:
+              smtpError.code === "ETIMEDOUT"
+                ? "Connection timeout - your hosting provider may block SMTP. Consider using a transactional email service like SendGrid or Mailgun."
+                : "Check your SMTP credentials and network connectivity.",
           },
         });
       }

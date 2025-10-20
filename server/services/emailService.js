@@ -38,11 +38,9 @@ class EmailService {
 
       const smtpConfig = {
         host: settings?.smtpHost || process.env.SMTP_HOST,
-        port: parseInt(settings?.smtpPort || process.env.SMTP_PORT) || 465,
-        secure:
-          settings?.smtpSecure !== undefined
-            ? settings.smtpSecure
-            : process.env.SMTP_SECURE === "true",
+        port: parseInt(settings?.smtpPort || process.env.SMTP_PORT) || 587, // Try 587 first (TLS)
+        secure: false, // Use STARTTLS instead of SSL
+        requireTLS: true, // Force TLS upgrade
         auth: {
           user: settings?.smtpUser || process.env.SMTP_USER,
           pass: settings?.smtpPassword || process.env.SMTP_PASS,
@@ -50,6 +48,7 @@ class EmailService {
         // Additional SMTP options for Gmail compatibility and stability
         tls: {
           rejectUnauthorized: false, // Allow self-signed certificates
+          ciphers: "SSLv3",
         },
         // Connection management to prevent socket close errors
         pool: true, // Use connection pooling
@@ -57,9 +56,9 @@ class EmailService {
         maxMessages: 100, // Max messages per connection
         rateDelta: 1000, // Time window for rate limiting
         rateLimit: 5, // Max emails per time window
-        connectionTimeout: 60000, // 60 seconds
-        greetingTimeout: 30000, // 30 seconds
-        socketTimeout: 60000, // 60 seconds
+        connectionTimeout: 30000, // 30 seconds (reduced)
+        greetingTimeout: 15000, // 15 seconds
+        socketTimeout: 30000, // 30 seconds
         logger: false, // Disable detailed logging
         debug: false, // Disable debug mode
       };
@@ -72,20 +71,22 @@ class EmailService {
     } catch (error) {
       console.error("Failed to initialize SMTP transporter:", error);
       // Fallback to environment variables only with SSL configuration that works
-      this.transporter = nodemailer.createTransport({
+      this.transporter = nodemailer.createTransporter({
         host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 465,
-        secure: process.env.SMTP_SECURE === "true",
+        port: parseInt(process.env.SMTP_PORT) || 587, // Try 587 first
+        secure: false, // Use STARTTLS
+        requireTLS: true,
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
         tls: {
           rejectUnauthorized: false,
+          ciphers: "SSLv3",
         },
-        connectionTimeout: 60000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
+        connectionTimeout: 30000,
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
       });
     }
   }
