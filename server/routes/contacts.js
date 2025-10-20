@@ -13,6 +13,19 @@ const router = express.Router();
 // Configure multer for file uploads
 const upload = multer({ dest: "server/uploads/" });
 
+// Add this helper function at the top of the file after the imports
+async function updateListContactCount(listId) {
+  try {
+    const count = await Contact.countDocuments({ lists: listId });
+    await ContactList.findByIdAndUpdate(listId, { contactCount: count });
+    console.log(`Updated contact count for list ${listId}: ${count}`);
+    return count;
+  } catch (error) {
+    console.error(`Failed to update contact count for list ${listId}:`, error);
+    throw error;
+  }
+}
+
 // Get all contacts
 router.get(
   "/",
@@ -183,6 +196,9 @@ router.put(
         return res.status(404).json({ error: "Contact not found" });
       }
 
+      // Store old list IDs for comparison
+      const oldListIds = existingContact.lists.map(id => id.toString());
+
       // If email is being updated, check for duplicates
       if (email && email.toLowerCase() !== existingContact.email) {
         const emailExists = await Contact.findOne({
@@ -233,6 +249,18 @@ router.put(
         runValidators: true, // Run schema validators
       }).populate("lists", "name");
 
+      // Update contact counts for affected lists if lists were changed
+      if (listIds && JSON.stringify(oldListIds.sort()) !== JSON.stringify(listIds.sort())) {
+        const allAffectedLists = [...new Set([...oldListIds, ...listIds])];
+        
+        // Update counts for all affected lists
+        for (const listId of allAffectedLists) {
+          await updateListContactCount(listId);
+        }
+        
+        console.log(`Updated contact counts for lists: ${allAffectedLists.join(', ')}`);
+      }
+
       // Log audit event
       await AuditLog.create({
         userId: req.user._id,
@@ -246,6 +274,7 @@ router.put(
             firstName: existingContact.firstName,
             lastName: existingContact.lastName,
             status: existingContact.status,
+            lists: oldListIds,
           },
         },
       });
@@ -291,14 +320,25 @@ router.delete(
         return res.status(400).json({ error: "Contact ID is required" });
       }
 
-      // Find and delete contact
-      const deletedContact = await Contact.findByIdAndDelete(id);
+      // Find contact first to get list IDs
+      const contactToDelete = await Contact.findById(id);
 
-      if (!deletedContact) {
+      if (!contactToDelete) {
         return res.status(404).json({ error: "Contact not found" });
       }
 
-      console.log("Deleted Contact:", deletedContact._id);
+      // Store list IDs before deletion
+      const listIds = contactToDelete.lists.map(id => id.toString());
+
+      // Delete the contact
+      const deletedContact = await Contact.findByIdAndDelete(id);
+
+      // Update contact counts for all lists this contact was in
+      for (const listId of listIds) {
+        await updateListContactCount(listId);
+      }
+
+      console.log(`Deleted Contact: ${deletedContact._id}, updated counts for lists: ${listIds.join(', ')}`);
 
       // Log audit event
       await AuditLog.create({
@@ -312,6 +352,7 @@ router.delete(
             firstName: deletedContact.firstName,
             lastName: deletedContact.lastName,
           },
+          affectedLists: listIds,
         },
       });
 
@@ -940,7 +981,7 @@ router.get(
   }
 );
 
-// Add contact to list
+// Update the "Add contact to list" route
 router.post(
   "/lists/:listId/contacts/:contactId",
   authenticateToken,
@@ -981,7 +1022,10 @@ router.post(
       contact.lists.push(listId);
       await contact.save();
 
-      console.log(`Added contact ${contactId} to list ${listId}`);
+      // Update the contact count for the list
+      const newContactCount = await updateListContactCount(listId);
+
+      console.log(`Added contact ${contactId} to list ${listId}. New count: ${newContactCount}`);
 
       // Log audit event
       await AuditLog.create({
@@ -993,13 +1037,17 @@ router.post(
           listId,
           listName: contactList.name,
           contactEmail: contact.email,
-        },
+          newContactCount
+        }
       });
 
       res.json({
         message: "Contact added to list successfully",
         contact: contact,
-        list: contactList,
+        list: {
+          ...contactList.toObject(),
+          contactCount: newContactCount
+        }
       });
     } catch (error) {
       console.error("Add contact to list error:", error);
@@ -1014,7 +1062,7 @@ router.post(
   }
 );
 
-// Remove contact from list
+// Update the "Remove contact from list" route
 router.delete(
   "/lists/:listId/contacts/:contactId",
   authenticateToken,
@@ -1053,7 +1101,10 @@ router.delete(
       contact.lists = contact.lists.filter((id) => id.toString() !== listId);
       await contact.save();
 
-      console.log(`Removed contact ${contactId} from list ${listId}`);
+      // Update the contact count for the list
+      const newContactCount = await updateListContactCount(listId);
+
+      console.log(`Removed contact ${contactId} from list ${listId}. New count: ${newContactCount}`);
 
       // Log audit event
       await AuditLog.create({
@@ -1065,13 +1116,17 @@ router.delete(
           listId,
           listName: contactList.name,
           contactEmail: contact.email,
-        },
+          newContactCount
+        }
       });
 
       res.json({
         message: "Contact removed from list successfully",
         contact: contact,
-        list: contactList,
+        list: {
+          ...contactList.toObject(),
+          contactCount: newContactCount
+        }
       });
     } catch (error) {
       console.error("Remove contact from list error:", error);
@@ -1082,6 +1137,127 @@ router.delete(
       }
 
       res.status(500).json({ error: "Failed to remove contact from list" });
+    }
+  }
+);
+
+// Get contacts in a specific list
+router.get(
+  "/lists/:listId/contacts",
+  authenticateToken,
+  requireRole(["admin", "editor", "viewer"]),
+  async (req, res) => {
+    try {
+      const { listId } = req.params;
+      const { page = 1, limit = 100 } = req.query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      console.log("Get Contacts in List Request:", { listId, page, limit });
+
+      // Validate list ID
+      if (!listId) {
+        return res.status(400).json({ error: "List ID is required" });
+      }
+
+      // Check if list exists
+      const contactList = await ContactList.findById(listId);
+      if (!contactList) {
+        return res.status(404).json({ error: "Contact list not found" });
+      }
+
+      // Find contacts that have this listId in their lists array
+      const contacts = await Contact.find({ 
+        lists: listId 
+      })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+      const total = await Contact.countDocuments({ lists: listId });
+
+      // Update the contact count in the list if it's different
+      if (contactList.contactCount !== total) {
+        await ContactList.findByIdAndUpdate(listId, { contactCount: total });
+        console.log(`Updated contact count for list ${listId} from ${contactList.contactCount} to ${total}`);
+      }
+
+      res.json({
+        contacts,
+        list: {
+          _id: contactList._id,
+          name: contactList.name,
+          description: contactList.description,
+          contactCount: total
+        },
+        pagination: {
+          current: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit)),
+          total,
+          limit: parseInt(limit)
+        }
+      });
+    } catch (error) {
+      console.error('Get contacts in list error:', error);
+      
+      // Handle cast errors (invalid ObjectId)
+      if (error.name === 'CastError') {
+        return res.status(400).json({ error: "Invalid list ID format" });
+      }
+
+      res.status(500).json({ error: 'Failed to fetch contacts in list' });
+    }
+  }
+);
+
+// Utility route to recalculate all contact list counts
+router.post(
+  "/lists/recalculate-counts",
+  authenticateToken,
+  requireRole(["admin"]),
+  async (req, res) => {
+    try {
+      console.log("Recalculating all contact list counts...");
+
+      const lists = await ContactList.find();
+      const results = [];
+
+      for (const list of lists) {
+        const oldCount = list.contactCount;
+        const newCount = await updateListContactCount(list._id);
+        
+        results.push({
+          listId: list._id,
+          listName: list.name,
+          oldCount,
+          newCount,
+          changed: oldCount !== newCount
+        });
+      }
+
+      console.log("Contact count recalculation completed");
+
+      // Log audit event
+      await AuditLog.create({
+        userId: req.user._id,
+        action: "contact_counts_recalculated",
+        targetType: "system",
+        details: {
+          listsProcessed: results.length,
+          changedCounts: results.filter(r => r.changed).length
+        }
+      });
+
+      res.json({
+        message: "Contact counts recalculated successfully",
+        results,
+        summary: {
+          totalLists: results.length,
+          listsUpdated: results.filter(r => r.changed).length
+        }
+      });
+    } catch (error) {
+      console.error("Recalculate contact counts error:", error);
+      res.status(500).json({ error: "Failed to recalculate contact counts" });
     }
   }
 );
