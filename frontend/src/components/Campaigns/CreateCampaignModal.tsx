@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { X, Mail, Users, Settings, Eye, Plus } from "lucide-react";
 import { ContactListManagerModal } from "../Contact/ContactListManagerModal";
 const fromName = import.meta.env.VITE_DEFAULT_FROM_NAME;
-
 const support = import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL;
 const noreply = import.meta.env.VITE_DEFAULT_FROM_EMAIL;
 interface Template {

@@ -55,7 +55,7 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api/queue", queueRoutesdnfjds);
+app.use("/api/queue", queueRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/audit", auditRoutes);
