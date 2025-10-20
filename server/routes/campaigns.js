@@ -244,7 +244,7 @@ router.post(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "campaign_created",
         targetType: "campaign",
         targetId: campaign._id,
@@ -452,7 +452,7 @@ router.post(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: sendAt ? "campaign_scheduled" : "campaign_sent",
         targetType: "campaign",
         targetId: campaign._id,
@@ -612,7 +612,7 @@ router.post(
 
       // Log test send
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "campaign_test_sent",
         targetType: "campaign",
         targetId: campaign._id,

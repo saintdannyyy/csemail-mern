@@ -253,7 +253,7 @@ router.get(
 
       // Log the export action
       await AuditLog.create({
-        userId: req.user.id,
+        userId: req.user._id || req.user.userId,
         action: "audit_logs_exported",
         targetType: "system",
         details: {

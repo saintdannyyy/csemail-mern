@@ -152,7 +152,7 @@ router.post(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contact_created",
         targetType: "contact",
         targetId: contact._id,
@@ -197,7 +197,7 @@ router.put(
       }
 
       // Store old list IDs for comparison
-      const oldListIds = existingContact.lists.map(id => id.toString());
+      const oldListIds = existingContact.lists.map((id) => id.toString());
 
       // If email is being updated, check for duplicates
       if (email && email.toLowerCase() !== existingContact.email) {
@@ -250,20 +250,25 @@ router.put(
       }).populate("lists", "name");
 
       // Update contact counts for affected lists if lists were changed
-      if (listIds && JSON.stringify(oldListIds.sort()) !== JSON.stringify(listIds.sort())) {
+      if (
+        listIds &&
+        JSON.stringify(oldListIds.sort()) !== JSON.stringify(listIds.sort())
+      ) {
         const allAffectedLists = [...new Set([...oldListIds, ...listIds])];
-        
+
         // Update counts for all affected lists
         for (const listId of allAffectedLists) {
           await updateListContactCount(listId);
         }
-        
-        console.log(`Updated contact counts for lists: ${allAffectedLists.join(', ')}`);
+
+        console.log(
+          `Updated contact counts for lists: ${allAffectedLists.join(", ")}`
+        );
       }
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contact_updated",
         targetType: "contact",
         targetId: updatedContact._id,
@@ -328,7 +333,7 @@ router.delete(
       }
 
       // Store list IDs before deletion
-      const listIds = contactToDelete.lists.map(id => id.toString());
+      const listIds = contactToDelete.lists.map((id) => id.toString());
 
       // Delete the contact
       const deletedContact = await Contact.findByIdAndDelete(id);
@@ -338,11 +343,15 @@ router.delete(
         await updateListContactCount(listId);
       }
 
-      console.log(`Deleted Contact: ${deletedContact._id}, updated counts for lists: ${listIds.join(', ')}`);
+      console.log(
+        `Deleted Contact: ${
+          deletedContact._id
+        }, updated counts for lists: ${listIds.join(", ")}`
+      );
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contact_deleted",
         targetType: "contact",
         targetId: deletedContact._id,
@@ -650,7 +659,7 @@ router.post(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "list_created",
         targetType: "list",
         targetId: list._id,
@@ -726,7 +735,7 @@ router.put(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contactList_updated",
         targetType: "contactList",
         targetId: updatedContactList._id,
@@ -793,7 +802,7 @@ router.delete(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contactList_deleted",
         targetType: "contactList",
         targetId: deletedContactList._id,
@@ -1025,11 +1034,13 @@ router.post(
       // Update the contact count for the list
       const newContactCount = await updateListContactCount(listId);
 
-      console.log(`Added contact ${contactId} to list ${listId}. New count: ${newContactCount}`);
+      console.log(
+        `Added contact ${contactId} to list ${listId}. New count: ${newContactCount}`
+      );
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contact_added_to_list",
         targetType: "contact",
         targetId: contact._id,
@@ -1037,8 +1048,8 @@ router.post(
           listId,
           listName: contactList.name,
           contactEmail: contact.email,
-          newContactCount
-        }
+          newContactCount,
+        },
       });
 
       res.json({
@@ -1046,8 +1057,8 @@ router.post(
         contact: contact,
         list: {
           ...contactList.toObject(),
-          contactCount: newContactCount
-        }
+          contactCount: newContactCount,
+        },
       });
     } catch (error) {
       console.error("Add contact to list error:", error);
@@ -1104,11 +1115,13 @@ router.delete(
       // Update the contact count for the list
       const newContactCount = await updateListContactCount(listId);
 
-      console.log(`Removed contact ${contactId} from list ${listId}. New count: ${newContactCount}`);
+      console.log(
+        `Removed contact ${contactId} from list ${listId}. New count: ${newContactCount}`
+      );
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contact_removed_from_list",
         targetType: "contact",
         targetId: contact._id,
@@ -1116,8 +1129,8 @@ router.delete(
           listId,
           listName: contactList.name,
           contactEmail: contact.email,
-          newContactCount
-        }
+          newContactCount,
+        },
       });
 
       res.json({
@@ -1125,8 +1138,8 @@ router.delete(
         contact: contact,
         list: {
           ...contactList.toObject(),
-          contactCount: newContactCount
-        }
+          contactCount: newContactCount,
+        },
       });
     } catch (error) {
       console.error("Remove contact from list error:", error);
@@ -1166,19 +1179,21 @@ router.get(
       }
 
       // Find contacts that have this listId in their lists array
-      const contacts = await Contact.find({ 
-        lists: listId 
+      const contacts = await Contact.find({
+        lists: listId,
       })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ createdAt: -1 });
 
       const total = await Contact.countDocuments({ lists: listId });
 
       // Update the contact count in the list if it's different
       if (contactList.contactCount !== total) {
         await ContactList.findByIdAndUpdate(listId, { contactCount: total });
-        console.log(`Updated contact count for list ${listId} from ${contactList.contactCount} to ${total}`);
+        console.log(
+          `Updated contact count for list ${listId} from ${contactList.contactCount} to ${total}`
+        );
       }
 
       res.json({
@@ -1187,24 +1202,24 @@ router.get(
           _id: contactList._id,
           name: contactList.name,
           description: contactList.description,
-          contactCount: total
+          contactCount: total,
         },
         pagination: {
           current: parseInt(page),
           pages: Math.ceil(total / parseInt(limit)),
           total,
-          limit: parseInt(limit)
-        }
+          limit: parseInt(limit),
+        },
       });
     } catch (error) {
-      console.error('Get contacts in list error:', error);
-      
+      console.error("Get contacts in list error:", error);
+
       // Handle cast errors (invalid ObjectId)
-      if (error.name === 'CastError') {
+      if (error.name === "CastError") {
         return res.status(400).json({ error: "Invalid list ID format" });
       }
 
-      res.status(500).json({ error: 'Failed to fetch contacts in list' });
+      res.status(500).json({ error: "Failed to fetch contacts in list" });
     }
   }
 );
@@ -1224,13 +1239,13 @@ router.post(
       for (const list of lists) {
         const oldCount = list.contactCount;
         const newCount = await updateListContactCount(list._id);
-        
+
         results.push({
           listId: list._id,
           listName: list.name,
           oldCount,
           newCount,
-          changed: oldCount !== newCount
+          changed: oldCount !== newCount,
         });
       }
 
@@ -1238,13 +1253,13 @@ router.post(
 
       // Log audit event
       await AuditLog.create({
-        userId: req.user._id,
+        userId: req.user._id || req.user.userId,
         action: "contact_counts_recalculated",
         targetType: "system",
         details: {
           listsProcessed: results.length,
-          changedCounts: results.filter(r => r.changed).length
-        }
+          changedCounts: results.filter((r) => r.changed).length,
+        },
       });
 
       res.json({
@@ -1252,8 +1267,8 @@ router.post(
         results,
         summary: {
           totalLists: results.length,
-          listsUpdated: results.filter(r => r.changed).length
-        }
+          listsUpdated: results.filter((r) => r.changed).length,
+        },
       });
     } catch (error) {
       console.error("Recalculate contact counts error:", error);
