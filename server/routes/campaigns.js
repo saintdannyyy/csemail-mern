@@ -326,18 +326,13 @@ router.post(
 
       // Send emails immediately if not scheduled
       if (!sendAt) {
-        // Get contacts from lists
-        const lists = await ContactList.find({
-          _id: { $in: campaign.lists },
-        }).populate({
-          path: "contacts",
-          match: { status: "active" },
+        // Get contacts from lists - contacts have lists field, not ContactList having contacts
+        const contacts = await Contact.find({
+          lists: { $in: campaign.lists },
+          status: "active",
         });
 
-        const contacts = [];
-        lists.forEach((list) => {
-          contacts.push(...list.contacts);
-        });
+        console.log(`Found ${contacts.length} contacts for sending`);
 
         if (contacts.length > 0) {
           // Send emails using EmailService

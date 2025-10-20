@@ -2,78 +2,212 @@ const express = require("express");
 const Settings = require("../models/Settings");
 const AuditLog = require("../models/AuditLog");
 const { authenticateToken, requireRole } = require("../middleware/auth");
+const path = require("path");
+
+// Ensure environment variables are loaded
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
 const router = express.Router();
 
-// Get all system settings
-// Get all system settings
-router.get("/", authenticateToken, requireRole(["admin"]), async (req, res) => {
+/**
+ * Get or create default settings
+ * @returns {Object} Settings document
+ */
+async function getOrCreateSettings() {
   try {
-    const settings = await Settings.find().sort("key");
+    let settings = await Settings.findOne({ isDefault: true });
 
-    // Group settings by category
-    const groupedSettings = {
-      email: [],
-      queue: [],
-      security: [],
-      general: [],
-    };
+    if (!settings) {
+      // Create default settings with environment variables
+      settings = new Settings({
+        smtpHost: process.env.SMTP_HOST || "",
+        smtpPort: parseInt(process.env.SMTP_PORT) || 465,
+        smtpUser: process.env.SMTP_USER || "",
+        smtpPassword: process.env.SMTP_PASS || "",
+        smtpSecure: process.env.SMTP_SECURE === "true",
+        fromEmail: process.env.DEFAULT_FROM_EMAIL || "",
+        fromName: process.env.DEFAULT_FROM_NAME || "CSE Mail",
+        replyToEmail: process.env.SUPPORT_EMAIL || "",
+        systemName: "CSE Mail",
+        timezone: "UTC",
+        emailRateLimit: 5,
+        batchSize: 1,
+        batchDelay: 2000,
+        requireAuth: true,
+        maxLoginAttempts: 5,
+        suppressionEnabled: true,
+        isDefault: true,
+      });
+      await settings.save();
+    }
 
-    settings?.forEach((setting) => {
-      if (setting.key.startsWith("smtp_") || setting.key.startsWith("email_")) {
-        groupedSettings.email.push(setting);
-      } else if (
-        setting.key.startsWith("queue_") ||
-        setting.key.startsWith("rate_")
-      ) {
-        groupedSettings.queue.push(setting);
-      } else if (
-        setting.key.startsWith("auth_") ||
-        setting.key.startsWith("security_")
-      ) {
-        groupedSettings.security.push(setting);
-      } else {
-        groupedSettings.general.push(setting);
-      }
-    });
-
-    res.json(groupedSettings);
+    return settings;
   } catch (error) {
-    console.error("Get settings error:", error);
-    res.status(500).json({ error: "Failed to fetch settings" });
+    console.error("Error in getOrCreateSettings:", error);
+    throw error;
   }
-});
+}
+
+// Get all system settings grouped by category
+router.get(
+  "/",
+  authenticateToken,
+  requireRole(["admin", "editor", "user"]),
+  async (req, res) => {
+    try {
+      const settings = await getOrCreateSettings();
+
+      // Group settings by category for the frontend
+      const groupedSettings = {
+        email: [
+          {
+            key: "fromName",
+            value: settings.fromName || "",
+            description: "Default sender name",
+          },
+          {
+            key: "fromEmail",
+            value: settings.fromEmail || "",
+            description: "Default sender email",
+          },
+          {
+            key: "replyToEmail",
+            value: settings.replyToEmail || "",
+            description: "Default reply-to email",
+          },
+          {
+            key: "emailRateLimit",
+            value: (settings.emailRateLimit || 5).toString(),
+            description: "Emails per minute limit",
+          },
+          {
+            key: "batchSize",
+            value: (settings.batchSize || 1).toString(),
+            description: "Emails per batch",
+          },
+          {
+            key: "batchDelay",
+            value: (settings.batchDelay || 2000).toString(),
+            description: "Delay between batches (ms)",
+          },
+        ],
+        queue: [
+          {
+            key: "batchSize",
+            value: (settings.batchSize || 1).toString(),
+            description: "Emails per batch",
+          },
+          {
+            key: "batchDelay",
+            value: (settings.batchDelay || 2000).toString(),
+            description: "Delay between batches (ms)",
+          },
+          {
+            key: "emailRateLimit",
+            value: (settings.emailRateLimit || 5).toString(),
+            description: "Emails per minute limit",
+          },
+        ],
+        security: [
+          {
+            key: "requireAuth",
+            value: (settings.requireAuth || true).toString(),
+            description: "Require authentication",
+          },
+          {
+            key: "maxLoginAttempts",
+            value: (settings.maxLoginAttempts || 5).toString(),
+            description: "Max login attempts",
+          },
+          {
+            key: "suppressionEnabled",
+            value: (settings.suppressionEnabled || true).toString(),
+            description: "Enable suppression list",
+          },
+        ],
+        general: [
+          {
+            key: "systemName",
+            value: settings.systemName || "CSE Mail",
+            description: "System name",
+          },
+          {
+            key: "timezone",
+            value: settings.timezone || "UTC",
+            description: "System timezone",
+          },
+        ],
+      };
+
+      res.json(groupedSettings);
+    } catch (error) {
+      console.error("Get settings error:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to fetch settings", details: error.message });
+    }
+  }
+);
 
 // Update system settings
 router.put("/", authenticateToken, requireRole(["admin"]), async (req, res) => {
   try {
-    const { settings } = req.body;
+    const { settings: settingsArray } = req.body;
 
-    if (!settings || !Array.isArray(settings)) {
+    if (!settingsArray || !Array.isArray(settingsArray)) {
       return res.status(400).json({ error: "Settings array is required" });
     }
 
-    // Update settings
-    const updatePromises = settings.map(async (setting) => {
-      return Settings.findOneAndUpdate(
-        { key: setting.key },
-        {
-          value: setting.value,
-          description: setting.description,
-          updatedAt: new Date(),
-        },
-        { upsert: true, new: true }
-      );
+    const settings = await getOrCreateSettings();
+
+    // Update settings based on key-value pairs
+    settingsArray.forEach(({ key, value }) => {
+      switch (key) {
+        case "fromName":
+          settings.fromName = value;
+          break;
+        case "fromEmail":
+          settings.fromEmail = value;
+          break;
+        case "replyToEmail":
+          settings.replyToEmail = value;
+          break;
+        case "emailRateLimit":
+          settings.emailRateLimit = parseInt(value) || 5;
+          break;
+        case "batchSize":
+          settings.batchSize = parseInt(value) || 1;
+          break;
+        case "batchDelay":
+          settings.batchDelay = parseInt(value) || 2000;
+          break;
+        case "requireAuth":
+          settings.requireAuth = value === "true";
+          break;
+        case "maxLoginAttempts":
+          settings.maxLoginAttempts = parseInt(value) || 5;
+          break;
+        case "suppressionEnabled":
+          settings.suppressionEnabled = value === "true";
+          break;
+        case "systemName":
+          settings.systemName = value;
+          break;
+        case "timezone":
+          settings.timezone = value;
+          break;
+      }
     });
 
-    await Promise.all(updatePromises);
+    settings.updatedBy = req.user.userId;
+    await settings.save();
 
     // Log audit event
     await AuditLog.create({
       userId: req.user.userId,
       action: "settings_updated",
       targetType: "system",
-      details: { updatedKeys: settings.map((s) => s.key) },
+      details: { updatedKeys: settingsArray.map((s) => s.key) },
     });
 
     res.json({ message: "Settings updated successfully" });
@@ -90,20 +224,13 @@ router.get(
   requireRole(["admin", "editor"]),
   async (req, res) => {
     try {
-      const settings = await Settings.findOne();
+      const settings = await getOrCreateSettings();
 
       const defaults = {
-        fromName:
-          settings?.fromName || process.env.DEFAULT_FROM_NAME || "CSE Mail",
-        fromEmail:
-          settings?.fromEmail ||
-          process.env.DEFAULT_FROM_EMAIL ||
-          "noreply@example.com",
+        fromName: settings.fromName || "CSE Mail",
+        fromEmail: settings.fromEmail || "noreply@example.com",
         replyToEmail:
-          settings?.replyToEmail ||
-          process.env.SUPPORT_EMAIL ||
-          process.env.DEFAULT_FROM_EMAIL ||
-          "noreply@example.com",
+          settings.replyToEmail || settings.fromEmail || "noreply@example.com",
       };
 
       res.json(defaults);
@@ -121,17 +248,17 @@ router.get(
   requireRole(["admin"]),
   async (req, res) => {
     try {
-      const smtpSettings = await Settings.find({ key: { $regex: "^smtp_" } });
+      const settings = await getOrCreateSettings();
 
-      const config = {};
-      smtpSettings?.forEach((setting) => {
-        config[setting.key] = setting.value;
-      });
-
-      // Don't return sensitive data like passwords
-      if (config.smtp_password) {
-        config.smtp_password = "***";
-      }
+      const config = {
+        smtp_host: settings.smtpHost,
+        smtp_port: settings.smtpPort,
+        smtp_username: settings.smtpUser,
+        smtp_password: "***", // Don't return actual password
+        smtp_secure: settings.smtpSecure,
+        smtp_from_name: settings.fromName,
+        smtp_from_email: settings.fromEmail,
+      };
 
       res.json(config);
     } catch (error) {
@@ -151,58 +278,31 @@ router.put(
       const { host, port, username, password, secure, fromName, fromEmail } =
         req.body;
 
-      const smtpSettings = [
-        { key: "smtp_host", value: host, description: "SMTP server hostname" },
-        {
-          key: "smtp_port",
-          value: port?.toString(),
-          description: "SMTP server port",
-        },
-        { key: "smtp_username", value: username, description: "SMTP username" },
-        {
-          key: "smtp_secure",
-          value: secure?.toString(),
-          description: "Use SSL/TLS",
-        },
-        {
-          key: "smtp_from_name",
-          value: fromName,
-          description: "Default sender name",
-        },
-        {
-          key: "smtp_from_email",
-          value: fromEmail,
-          description: "Default sender email",
-        },
-      ];
+      const settings = await getOrCreateSettings();
 
-      // Only update password if provided
-      if (password && password !== "***") {
-        smtpSettings.push({
-          key: "smtp_password",
-          value: password,
-          description: "SMTP password",
-        });
+      // Update SMTP settings
+      if (host !== undefined) settings.smtpHost = host;
+      if (port !== undefined) settings.smtpPort = parseInt(port);
+      if (username !== undefined) settings.smtpUser = username;
+      if (password !== undefined && password !== "***")
+        settings.smtpPassword = password;
+      if (secure !== undefined) settings.smtpSecure = Boolean(secure);
+      if (fromName !== undefined) settings.fromName = fromName;
+      if (fromEmail !== undefined) settings.fromEmail = fromEmail;
+
+      settings.updatedBy = req.user.userId;
+      await settings.save();
+
+      // Refresh email service transporter with new settings
+      try {
+        const emailService = require("../services/emailService");
+        await emailService.refreshTransporter();
+      } catch (refreshError) {
+        console.warn(
+          "Could not refresh email service transporter:",
+          refreshError.message
+        );
       }
-
-      // Update settings
-      const updatePromises = smtpSettings
-        .filter(
-          (setting) => setting.value !== undefined && setting.value !== null
-        )
-        .map(async (setting) => {
-          return Settings.findOneAndUpdate(
-            { key: setting.key },
-            {
-              value: setting.value,
-              description: setting.description,
-              updatedAt: new Date(),
-            },
-            { upsert: true, new: true }
-          );
-        });
-
-      await Promise.all(updatePromises);
 
       // Log audit event (without sensitive data)
       await AuditLog.create({
@@ -235,38 +335,88 @@ router.post(
           .json({ error: "Test email address is required" });
       }
 
-      // Get SMTP configuration
-      const smtpSettings = await Settings.find({ key: { $regex: "^smtp_" } });
+      // Get current SMTP settings
+      const settings = await getOrCreateSettings();
 
-      const config = {};
-      smtpSettings?.forEach((setting) => {
-        config[setting.key] = setting.value;
-      });
+      // Use email service to test SMTP
+      const emailService = require("../services/emailService");
 
-      // TODO: Implement actual SMTP test
-      // This would use nodemailer to test the connection and send a test email
+      try {
+        // Refresh transporter with current settings
+        await emailService.refreshTransporter();
 
-      // For demo purposes, simulate a successful test
-      const testResult = {
-        success: true,
-        message: "SMTP connection test successful",
-        details: {
-          host: config.smtp_host,
-          port: config.smtp_port,
-          secure: config.smtp_secure === "true",
-          testEmailSent: true,
-        },
-      };
+        // Verify SMTP connection
+        await emailService.verifyConnection();
 
-      // Log audit event
-      await AuditLog.create({
-        userId: req.user.userId,
-        action: "smtp_test_performed",
-        targetType: "system",
-        details: { testEmail, success: testResult.success },
-      });
+        // Send a test email
+        const testResult = await emailService.sendTemplateEmail({
+          to: testEmail,
+          customTemplate: {
+            subject: "SMTP Test Email from {{company_name}}",
+            content: `
+              <h2>SMTP Configuration Test</h2>
+              <p>This is a test email to verify your SMTP configuration is working correctly.</p>
+              <p><strong>Sent from:</strong> {{company_name}}</p>
+              <p><strong>Date:</strong> {{current_date}}</p>
+              <p><strong>SMTP Host:</strong> ${settings.smtpHost}</p>
+              <p><strong>SMTP Port:</strong> ${settings.smtpPort}</p>
+              <p><strong>Secure:</strong> ${
+                settings.smtpSecure ? "Yes" : "No"
+              }</p>
+              <hr>
+              <p style="color: #666; font-size: 12px;">If you received this email, your SMTP configuration is working correctly!</p>
+            `,
+          },
+          fromName: settings.fromName,
+          fromEmail: settings.fromEmail,
+          userId: req.user.userId,
+        });
 
-      res.json(testResult);
+        // Log audit event
+        await AuditLog.create({
+          userId: req.user.userId,
+          action: "smtp_test_performed",
+          targetType: "system",
+          details: {
+            testEmail,
+            success: true,
+            messageId: testResult.messageId,
+          },
+        });
+
+        res.json({
+          success: true,
+          message: "SMTP test email sent successfully",
+          details: {
+            host: settings.smtpHost,
+            port: settings.smtpPort,
+            secure: settings.smtpSecure,
+            testEmailSent: true,
+            messageId: testResult.messageId,
+          },
+        });
+      } catch (smtpError) {
+        console.error("SMTP test failed:", smtpError);
+
+        // Log failed test
+        await AuditLog.create({
+          userId: req.user.userId,
+          action: "smtp_test_failed",
+          targetType: "system",
+          details: { testEmail, error: smtpError.message },
+        });
+
+        res.status(400).json({
+          success: false,
+          message: "SMTP test failed",
+          error: smtpError.message,
+          details: {
+            host: settings.smtpHost,
+            port: settings.smtpPort,
+            secure: settings.smtpSecure,
+          },
+        });
+      }
     } catch (error) {
       console.error("SMTP test error:", error);
       res.status(500).json({ error: "Failed to test SMTP connection" });
@@ -281,23 +431,21 @@ router.get(
   requireRole(["admin"]),
   async (req, res) => {
     try {
-      const suppressionSettings = await Settings.find({
-        key: { $regex: "^suppression_" },
-      });
+      const settings = await getOrCreateSettings();
 
-      const config = {};
-      suppressionSettings?.forEach((setting) => {
-        config[setting.key] = setting.value;
-      });
+      const config = {
+        suppressionEnabled: settings.suppressionEnabled,
+        suppressionList: settings.suppressionList || [],
+      };
 
       // TODO: Get suppression list statistics when SuppressionList model is implemented
       const stats = {
-        total: 0,
+        total: settings.suppressionList?.length || 0,
         byReason: {
           bounced: 0,
           unsubscribed: 0,
           complained: 0,
-          manual: 0,
+          manual: settings.suppressionList?.length || 0,
         },
       };
 
@@ -316,29 +464,40 @@ router.get(
   requireRole(["admin"]),
   async (req, res) => {
     try {
-      const settings = await Settings.find({}, "key value description").sort(
-        "key"
-      );
+      const settings = await getOrCreateSettings();
 
-      // Remove sensitive settings from export
-      const sensitiveKeys = ["smtp_password", "jwt_secret", "api_keys"];
-      const exportSettings =
-        settings?.filter(
-          (setting) => !sensitiveKeys.some((key) => setting.key.includes(key))
-        ) || [];
+      // Create export object without sensitive data
+      const exportData = {
+        smtpHost: settings.smtpHost,
+        smtpPort: settings.smtpPort,
+        smtpUser: settings.smtpUser,
+        smtpSecure: settings.smtpSecure,
+        fromEmail: settings.fromEmail,
+        fromName: settings.fromName,
+        replyToEmail: settings.replyToEmail,
+        suppressionEnabled: settings.suppressionEnabled,
+        emailRateLimit: settings.emailRateLimit,
+        batchSize: settings.batchSize,
+        batchDelay: settings.batchDelay,
+        requireAuth: settings.requireAuth,
+        maxLoginAttempts: settings.maxLoginAttempts,
+        systemName: settings.systemName,
+        timezone: settings.timezone,
+        // Don't export password and suppression list for security
+      };
 
       // Log audit event
       await AuditLog.create({
         userId: req.user.userId,
         action: "settings_exported",
         targetType: "system",
-        details: { settingsCount: exportSettings.length },
+        details: { settingsCount: Object.keys(exportData).length },
       });
 
       res.json({
         exportedAt: new Date().toISOString(),
-        settingsCount: exportSettings.length,
-        settings: exportSettings,
+        settingsCount: Object.keys(exportData).length,
+        settings: exportData,
       });
     } catch (error) {
       console.error("Export settings error:", error);

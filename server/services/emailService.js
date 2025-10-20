@@ -1,8 +1,19 @@
+/**
+ * Email Service for CSE Mail Platform
+ * Handles SMTP configuration, email sending, and template processing
+ */
 const nodemailer = require("nodemailer");
 const Template = require("../models/Template");
 const AuditLog = require("../models/AuditLog");
 const Settings = require("../models/Settings");
+const path = require("path");
 
+// Ensure environment variables are loaded
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+
+/**
+ * Email service class for handling email operations
+ */
 class EmailService {
   constructor() {
     this.transporter = null;
@@ -14,12 +25,20 @@ class EmailService {
    */
   async initializeTransporter() {
     try {
-      // Try to get settings from database first
-      const settings = await Settings.findOne();
+      // Try to get settings from database first, but don't wait too long
+      let settings = null;
+      try {
+        // Check if mongoose is connected before trying to query
+        if (require("mongoose").connection.readyState === 1) {
+          settings = await Settings.findOne().maxTimeMS(2000); // 2 second timeout
+        }
+      } catch (dbError) {
+        // Database not ready, fallback to environment variables
+      }
 
       const smtpConfig = {
         host: settings?.smtpHost || process.env.SMTP_HOST,
-        port: parseInt(settings?.smtpPort || process.env.SMTP_PORT) || 587,
+        port: parseInt(settings?.smtpPort || process.env.SMTP_PORT) || 465,
         secure:
           settings?.smtpSecure !== undefined
             ? settings.smtpSecure
@@ -28,33 +47,41 @@ class EmailService {
           user: settings?.smtpUser || process.env.SMTP_USER,
           pass: settings?.smtpPassword || process.env.SMTP_PASS,
         },
-        // Additional SMTP options
+        // Additional SMTP options for Gmail compatibility and stability
         tls: {
-          rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
+          rejectUnauthorized: false, // Allow self-signed certificates
         },
+        // Connection management to prevent socket close errors
+        pool: true, // Use connection pooling
+        maxConnections: 1, // Limit concurrent connections
+        maxMessages: 100, // Max messages per connection
+        rateDelta: 1000, // Time window for rate limiting
+        rateLimit: 5, // Max emails per time window
         connectionTimeout: 60000, // 60 seconds
         greetingTimeout: 30000, // 30 seconds
         socketTimeout: 60000, // 60 seconds
+        logger: false, // Disable detailed logging
+        debug: false, // Disable debug mode
       };
 
       // Configure SMTP transporter
       this.transporter = nodemailer.createTransport(smtpConfig);
 
-      // Verify SMTP connection on startup
-      this.verifyConnection();
+      // Don't verify on startup to avoid blocking initialization
+      // Verification will happen when actually sending emails
     } catch (error) {
       console.error("Failed to initialize SMTP transporter:", error);
-      // Fallback to environment variables only
+      // Fallback to environment variables only with SSL configuration that works
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 587,
+        port: parseInt(process.env.SMTP_PORT) || 465,
         secure: process.env.SMTP_SECURE === "true",
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
         tls: {
-          rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
+          rejectUnauthorized: false,
         },
         connectionTimeout: 60000,
         greetingTimeout: 30000,
@@ -72,16 +99,15 @@ class EmailService {
 
   /**
    * Verify SMTP connection
+   * @returns {Promise<boolean>} True if connection successful
    */
   async verifyConnection() {
     try {
       await this.transporter.verify();
-      console.log("SMTP connection verified successfully");
+      return true;
     } catch (error) {
       console.error("SMTP connection failed:", error.message);
-      console.error(
-        "Please check your SMTP configuration in environment variables"
-      );
+      return false;
     }
   }
 
@@ -263,8 +289,8 @@ class EmailService {
     replyTo,
     userId,
     campaignId = null,
-    batchSize = 10,
-    delay = 1000, // Delay between batches in ms
+    batchSize = 1, // Send one at a time to avoid connection issues
+    delay = 2000, // Increased delay between emails
   }) {
     const results = {
       successful: [],
@@ -272,42 +298,42 @@ class EmailService {
       total: contacts.length,
     };
 
-    // Process contacts in batches to avoid overwhelming the email service
-    for (let i = 0; i < contacts.length; i += batchSize) {
-      const batch = contacts.slice(i, i + batchSize);
+    // Send emails one by one with delays to avoid connection issues
+    for (let i = 0; i < contacts.length; i++) {
+      const contact = contacts[i];
 
-      const batchPromises = batch.map(async (contact) => {
-        try {
-          const result = await this.sendTemplateEmail({
-            templateId,
-            customTemplate, // Pass custom template through
-            to: contact.email,
-            variables,
-            contact,
-            fromName,
-            fromEmail,
-            replyTo,
-            userId,
-            campaignId,
-          });
+      try {
+        const result = await this.sendTemplateEmail({
+          templateId,
+          customTemplate, // Pass custom template through
+          to: contact.email,
+          variables,
+          contact,
+          fromName,
+          fromEmail,
+          replyTo,
+          userId,
+          campaignId,
+        });
 
-          results.successful.push({
-            contact: contact.email,
-            messageId: result.messageId,
-            subject: result.subject,
-          });
-        } catch (error) {
-          results.failed.push({
-            contact: contact.email,
-            error: error.message,
-          });
-        }
-      });
+        results.successful.push({
+          contact: contact.email,
+          messageId: result.messageId,
+          subject: result.subject,
+        });
+      } catch (error) {
+        console.error(
+          `Failed to send email to ${contact.email}:`,
+          error.message
+        );
+        results.failed.push({
+          contact: contact.email,
+          error: error.message,
+        });
+      }
 
-      await Promise.all(batchPromises);
-
-      // Add delay between batches if not the last batch
-      if (i + batchSize < contacts.length) {
+      // Add delay between emails to avoid overwhelming SMTP
+      if (i < contacts.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
