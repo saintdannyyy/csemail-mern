@@ -66,6 +66,11 @@ class EmailService {
       // Configure SMTP transporter
       this.transporter = nodemailer.createTransport(smtpConfig);
 
+      // Log successful SMTP connection
+      console.log(
+        `SMTP transporter connected successfully to ${smtpConfig.host} on port ${smtpConfig.port}`
+      );
+
       // Don't verify on startup to avoid blocking initialization
       // Verification will happen when actually sending emails
     } catch (error) {
