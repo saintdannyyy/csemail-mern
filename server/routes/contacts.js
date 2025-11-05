@@ -10,8 +10,10 @@ const { authenticateToken, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const upload = multer({ dest: "server/uploads/" });
+// Configure multer for file uploads - use /tmp for serverless environments
+const uploadDir =
+  process.env.NODE_ENV === "production" ? "/tmp" : "server/uploads/";
+const upload = multer({ dest: uploadDir });
 
 // Add this helper function at the top of the file after the imports
 async function updateListContactCount(listId) {

@@ -17,7 +17,6 @@ let isConnected = false;
 
 const connectDB = async () => {
   if (isConnected) {
-    console.log("Using existing MongoDB connection");
     return;
   }
 
@@ -27,9 +26,11 @@ const connectDB = async () => {
       socketTimeoutMS: 45000,
     });
     isConnected = db.connections[0].readyState === 1;
-    console.log("Connected to MongoDB");
+    if (isConnected) {
+      console.log("✓ MongoDB connected successfully");
+    }
   } catch (error) {
-    console.error("MongoDB connection error:", error);
+    console.error("✗ MongoDB connection error:", error.message);
     // Don't throw - allow the app to start even if DB is not connected
   }
 };
