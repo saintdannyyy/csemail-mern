@@ -1,5 +1,5 @@
 import React from "react";
-import { TrendingUp, Mail, MousePointer, Eye } from "lucide-react";
+import { Mail, MousePointer, Eye } from "lucide-react";
 
 interface ChartData {
   date: string;
