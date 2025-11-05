@@ -12,30 +12,36 @@ if (process.env.NODE_ENV !== "production") {
 
 // mongoose.set("debug", true);
 
-// Connect to MongoDB with error handling
-let isConnected = false;
+// Configure mongoose for serverless
+mongoose.set("bufferCommands", false); // Disable buffering in serverless
+mongoose.set("bufferTimeoutMS", 10000); // Set buffer timeout
+
+// Connect to MongoDB with optimized settings for serverless
+let cachedDb = null;
 
 const connectDB = async () => {
-  if (isConnected) {
-    return;
+  if (cachedDb && mongoose.connection.readyState === 1) {
+    return cachedDb;
   }
 
   try {
     const db = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000, // Increased to 10 seconds
       socketTimeoutMS: 45000,
+      maxPoolSize: 10, // Connection pooling for serverless
+      minPoolSize: 1,
     });
-    isConnected = db.connections[0].readyState === 1;
-    if (isConnected) {
-      console.log("✓ MongoDB connected successfully");
-    }
+    cachedDb = db;
+    console.log("✓ MongoDB connected successfully");
+    return db;
   } catch (error) {
     console.error("✗ MongoDB connection error:", error.message);
-    // Don't throw - allow the app to start even if DB is not connected
+    throw error; // Throw error so routes know DB is not available
   }
 };
 
-connectDB();
+// Initialize connection (but don't block app startup)
+connectDB().catch((err) => console.error("Initial DB connection failed:", err));
 
 const authRoutes = require("./routes/auth");
 const contactRoutes = require("./routes/contacts");
@@ -90,6 +96,27 @@ app.use((req, res, next) => {
     return res.status(204).end();
   }
   next();
+});
+
+// Middleware to ensure DB connection before processing requests
+app.use(async (req, res, next) => {
+  // Skip health check and root route from DB check
+  if (req.path === "/api/health" || req.path === "/") {
+    return next();
+  }
+
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+    next();
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    res.status(503).json({
+      error: "Service temporarily unavailable",
+      message: "Database connection failed. Please try again.",
+    });
+  }
 });
 
 // Root route for testing
