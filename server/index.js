@@ -84,15 +84,21 @@ app.use(express.json({ limit: "50mb" }));
 // Static files
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Handle preflight requests explicitly
-app.options("*", cors());
+// Handle preflight requests explicitly for all routes
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  next();
+});
 
 // Root route for testing
 app.get("/", (req, res) => {
-  res.json({ 
-    message: "CSEMail API Server", 
+  res.json({
+    message: "CSEMail API Server",
     status: "running",
-    mongoStatus: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+    mongoStatus:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 
