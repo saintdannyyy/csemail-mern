@@ -1,5 +1,5 @@
 // API client for Emmisor backend communication
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://csemail-backend.vercel.app';
 
 class ApiClient {
   private baseURL: string;
