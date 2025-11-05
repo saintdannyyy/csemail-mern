@@ -38,29 +38,26 @@ class EmailService {
 
       const smtpConfig = {
         host: settings?.smtpHost || process.env.SMTP_HOST,
-        port: parseInt(settings?.smtpPort || process.env.SMTP_PORT) || 587, // Try 587 first (TLS)
+        port: parseInt(settings?.smtpPort || process.env.SMTP_PORT) || 587,
         secure: false, // Use STARTTLS instead of SSL
         requireTLS: true, // Force TLS upgrade
         auth: {
           user: settings?.smtpUser || process.env.SMTP_USER,
           pass: settings?.smtpPassword || process.env.SMTP_PASS,
         },
-        // Additional SMTP options for Gmail compatibility and stability
+        // Additional SMTP options for Gmail compatibility
         tls: {
-          rejectUnauthorized: false, // Allow self-signed certificates
+          rejectUnauthorized: false,
           ciphers: "SSLv3",
         },
-        // Connection management to prevent socket close errors
-        pool: true, // Use connection pooling
-        maxConnections: 1, // Limit concurrent connections
-        maxMessages: 100, // Max messages per connection
-        rateDelta: 1000, // Time window for rate limiting
-        rateLimit: 5, // Max emails per time window
-        connectionTimeout: 30000, // 30 seconds (reduced)
-        greetingTimeout: 15000, // 15 seconds
-        socketTimeout: 30000, // 30 seconds
-        logger: false, // Disable detailed logging
-        debug: false, // Disable debug mode
+        // Optimized for serverless/Vercel environment
+        pool: false, // Disable pooling for serverless
+        maxConnections: 1,
+        connectionTimeout: 10000, // 10 seconds (reduced for serverless)
+        greetingTimeout: 8000, // 8 seconds
+        socketTimeout: 10000, // 10 seconds
+        logger: false,
+        debug: false,
       };
 
       // Configure SMTP transporter
@@ -75,11 +72,11 @@ class EmailService {
       // Verification will happen when actually sending emails
     } catch (error) {
       console.error("Failed to initialize SMTP transporter:", error);
-      // Fallback to environment variables only with SSL configuration that works
-      this.transporter = nodemailer.createTransporter({
+      // Fallback to environment variables with optimized settings
+      this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 587, // Try 587 first
-        secure: false, // Use STARTTLS
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: false,
         requireTLS: true,
         auth: {
           user: process.env.SMTP_USER,
@@ -89,9 +86,10 @@ class EmailService {
           rejectUnauthorized: false,
           ciphers: "SSLv3",
         },
-        connectionTimeout: 30000,
-        greetingTimeout: 15000,
-        socketTimeout: 30000,
+        pool: false,
+        connectionTimeout: 10000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
       });
     }
   }
