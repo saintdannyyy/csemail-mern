@@ -4,14 +4,37 @@ const mongoose = require("mongoose");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../.env") });
+
+// Load environment variables - Vercel handles this automatically
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config({ path: path.join(__dirname, "../.env") });
+}
 
 // mongoose.set("debug", true);
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(async () => console.log("Connected to MongoDB"))
-  .catch((error) => console.log("MongoDB Error", error));
+// Connect to MongoDB with error handling
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) {
+    console.log("Using existing MongoDB connection");
+    return;
+  }
+
+  try {
+    const db = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    isConnected = db.connections[0].readyState === 1;
+    console.log("Connected to MongoDB");
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    // Don't throw - allow the app to start even if DB is not connected
+  }
+};
+
+connectDB();
 
 const authRoutes = require("./routes/auth");
 const contactRoutes = require("./routes/contacts");
@@ -62,6 +85,15 @@ app.use(express.json({ limit: "50mb" }));
 
 // Handle preflight requests explicitly
 app.options("*", cors());
+
+// Root route for testing
+app.get("/", (req, res) => {
+  res.json({ 
+    message: "CSEMail API Server", 
+    status: "running",
+    mongoStatus: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+  });
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
