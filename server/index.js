@@ -32,11 +32,9 @@ app.use(helmet());
 app.use(
   cors({
     origin: [
-      "*",
-      // "http://localhost:5173",
-      // "http://127.0.0.1:5173",
-      // "https://csemail.vercel.app",
-      // "https://csemail-backend.vercel.app",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://csemail.vercel.app",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -50,6 +48,8 @@ app.use(
       "Access-Control-Request-Headers",
     ],
     exposedHeaders: ["Access-Control-Allow-Origin"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
 app.use(morgan("combined"));
@@ -97,8 +97,12 @@ app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Emmisor server running on port ${PORT}`);
-});
+// Only start server if not in serverless environment
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Emmisor server running on port ${PORT}`);
+  });
+}
 
+// Export for Vercel serverless
 module.exports = app;
