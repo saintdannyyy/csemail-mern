@@ -59,6 +59,9 @@ app.use(express.json({ limit: "50mb" }));
 // Static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Handle preflight requests explicitly
+app.options("*", cors());
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/contacts", contactRoutes);
