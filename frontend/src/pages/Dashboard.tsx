@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { StatsCards } from "../components/Dashboard/StatsCards";
 import { RecentActivity } from "../components/Dashboard/RecentActivity";
 import { CampaignPerformanceChart } from "../components/Dashboard/CampaignPerformanceChart";
-import { ApiTestComponent } from "../components/ApiTestComponent";
 import { apiClient } from "../utils/apiClient";
 
 export const Dashboard: React.FC = () => {
