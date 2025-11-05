@@ -40,8 +40,6 @@ app.use(
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    status: 200,
-
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -60,7 +58,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: "50mb" }));
 
 // Static files
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Handle preflight requests explicitly
 app.options("*", cors());
