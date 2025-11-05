@@ -40,6 +40,8 @@ app.use(
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    status: 200,
+
     allowedHeaders: [
       "Content-Type",
       "Authorization",
