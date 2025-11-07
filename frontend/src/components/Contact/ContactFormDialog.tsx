@@ -1,5 +1,5 @@
-import React, { useState } from "react"
-import { Plus, X } from "lucide-react"
+import React, { useState } from "react";
+import { Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,10 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog"
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { Label } from "../ui/label"
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 // import {
 //   Select,
 //   SelectContent,
@@ -19,26 +19,30 @@ import { Label } from "../ui/label"
 //   SelectTrigger,
 //   SelectValue,
 // } from "./ui/select"
-import { Contact } from "../../types"
+import { Contact } from "../../types";
 
 interface ContactFormDialogProps {
-  contact?: Contact
-  onSave: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>) => void
-  onCancel?: () => void
-  trigger?: React.ReactNode
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  contact?: Contact;
+  onSave: (contact: Omit<Contact, "id" | "createdAt" | "updatedAt">) => void;
+  onCancel?: () => void;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface ContactFormData {
-  email: string
-  firstName: string
-  lastName: string
-  phone: string
-  tags: string[]
-  customFields: Record<string, string>
-  status: 'active' | 'unsubscribed' | 'bounced' | 'complained'
-  listIds: string[]
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  tags: string[];
+  customFields: {
+    company?: string;
+    position?: string;
+    // [key: string]: string | undefined
+  };
+  status: "active" | "unsubscribed" | "bounced" | "complained";
+  listIds: string[];
 }
 
 export function ContactFormDialog({
@@ -50,43 +54,43 @@ export function ContactFormDialog({
   onOpenChange,
 }: ContactFormDialogProps) {
   const [formData, setFormData] = useState<ContactFormData>({
-    email: contact?.email || '',
-    firstName: contact?.firstName || '',
-    lastName: contact?.lastName || '',
-    phone: contact?.phone || '',
+    email: contact?.email || "",
+    firstName: contact?.firstName || "",
+    lastName: contact?.lastName || "",
+    phone: contact?.phone || "",
     tags: contact?.tags || [],
     customFields: contact?.customFields || {},
-    status: contact?.status || 'active',
+    status: contact?.status || "active",
     listIds: contact?.listIds || [],
-  })
+  });
   // const [newTag, setNewTag] = useState('')
-  const [newCustomField, setNewCustomField] = useState({ key: '', value: '' })
+  const [newCustomField, setNewCustomField] = useState({ key: "", value: "" });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     // Basic validation
     if (!formData.email) {
-      alert('Email is required')
-      return
+      alert("Email is required");
+      return;
     }
 
-    onSave(formData)
-    
+    onSave(formData);
+
     // Reset form if creating new contact
     if (!contact) {
       setFormData({
-        email: '',
-        firstName: '',
-        lastName: '',
-        phone: '',
+        email: "",
+        firstName: "",
+        lastName: "",
+        phone: "",
         tags: [],
         customFields: {},
-        status: 'active',
+        status: "active",
         listIds: [],
-      })
+      });
     }
-  }
+  };
 
   // const addTag = () => {
   //   if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
@@ -107,50 +111,47 @@ export function ContactFormDialog({
 
   const addCustomField = () => {
     if (newCustomField.key.trim() && newCustomField.value.trim()) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         customFields: {
           ...prev.customFields,
-          [newCustomField.key.trim()]: newCustomField.value.trim()
-        }
-      }))
-      setNewCustomField({ key: '', value: '' })
+          [newCustomField.key.trim()]: newCustomField.value.trim(),
+        },
+      }));
+      setNewCustomField({ key: "", value: "" });
     }
-  }
+  };
 
   const removeCustomField = (keyToRemove: string) => {
-    setFormData(prev => {
-      const newCustomFields = { ...prev.customFields }
-      delete newCustomFields[keyToRemove]
+    setFormData((prev) => {
+      const newCustomFields = { ...prev.customFields };
+      // delete newCustomFields[keyToRemove];
       return {
         ...prev,
-        customFields: newCustomFields
-      }
-    })
-  }
+        customFields: newCustomFields,
+      };
+    });
+  };
 
   const defaultTrigger = (
     <Button>
       <Plus className="mr-2 h-4 w-4" />
       Add Contact
     </Button>
-  )
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {contact ? 'Edit Contact' : 'Add New Contact'}
+            {contact ? "Edit Contact" : "Add New Contact"}
           </DialogTitle>
           <DialogDescription>
-            {contact 
-              ? 'Update the contact information below.' 
-              : 'Fill in the details to create a new contact.'
-            }
+            {contact
+              ? "Update the contact information below."
+              : "Fill in the details to create a new contact."}
           </DialogDescription>
         </DialogHeader>
 
@@ -162,7 +163,9 @@ export function ContactFormDialog({
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, email: e.target.value }))
+                }
                 placeholder="Enter email address"
                 required
               />
@@ -173,7 +176,9 @@ export function ContactFormDialog({
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                }
                 placeholder="Enter phone number"
               />
             </div>
@@ -204,7 +209,12 @@ export function ContactFormDialog({
               <Input
                 id="firstName"
                 value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    firstName: e.target.value,
+                  }))
+                }
                 placeholder="Enter first name"
               />
             </div>
@@ -213,12 +223,51 @@ export function ContactFormDialog({
               <Input
                 id="lastName"
                 value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, lastName: e.target.value }))
+                }
                 placeholder="Enter last name"
               />
             </div>
           </div>
-          
+
+          {/* Company and Position Fields */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company">Company</Label>
+              <Input
+                id="company"
+                value={formData.customFields.company || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    customFields: {
+                      ...prev.customFields,
+                      company: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="Enter company name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="position">Position</Label>
+              <Input
+                id="position"
+                value={formData.customFields.position || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    customFields: {
+                      ...prev.customFields,
+                      position: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="Enter job position"
+              />
+            </div>
+          </div>
 
           {/* Tags Section */}
           {/* <div className="space-y-2">
@@ -261,25 +310,35 @@ export function ContactFormDialog({
           </div> */}
 
           {/* Custom Fields Section */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label>Custom Fields</Label>
             <div className="grid grid-cols-5 gap-2">
               <div className="col-span-2">
                 <Input
                   value={newCustomField.key}
-                  onChange={(e) => setNewCustomField(prev => ({ ...prev, key: e.target.value }))}
+                  onChange={(e) =>
+                    setNewCustomField((prev) => ({
+                      ...prev,
+                      key: e.target.value,
+                    }))
+                  }
                   placeholder="Field name"
                 />
               </div>
               <div className="col-span-2">
                 <Input
                   value={newCustomField.value}
-                  onChange={(e) => setNewCustomField(prev => ({ ...prev, value: e.target.value }))}
+                  onChange={(e) =>
+                    setNewCustomField((prev) => ({
+                      ...prev,
+                      value: e.target.value,
+                    }))
+                  }
                   placeholder="Field value"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      addCustomField()
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustomField();
                     }
                   }}
                 />
@@ -309,7 +368,7 @@ export function ContactFormDialog({
                 ))}
               </div>
             )}
-          </div>
+          </div> */}
 
           <DialogFooter>
             <Button
@@ -319,39 +378,39 @@ export function ContactFormDialog({
                 // Reset form to original state when canceling
                 if (contact) {
                   setFormData({
-                    email: contact.email || '',
-                    firstName: contact.firstName || '',
-                    lastName: contact.lastName || '',
-                    phone: contact.phone || '',
+                    email: contact.email || "",
+                    firstName: contact.firstName || "",
+                    lastName: contact.lastName || "",
+                    phone: contact.phone || "",
                     tags: contact.tags || [],
                     customFields: contact.customFields || {},
-                    status: contact.status || 'active',
+                    status: contact.status || "active",
                     listIds: contact.listIds || [],
-                  })
+                  });
                 } else {
                   setFormData({
-                    email: '',
-                    firstName: '',
-                    lastName: '',
-                    phone: '',
+                    email: "",
+                    firstName: "",
+                    lastName: "",
+                    phone: "",
                     tags: [],
                     customFields: {},
-                    status: 'active',
+                    status: "active",
                     listIds: [],
-                  })
+                  });
                 }
-                onCancel?.()
-                onOpenChange?.(false)
+                onCancel?.();
+                onOpenChange?.(false);
               }}
             >
               Cancel
             </Button>
             <Button type="submit">
-              {contact ? 'Update Contact' : 'Create Contact'}
+              {contact ? "Update Contact" : "Create Contact"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
