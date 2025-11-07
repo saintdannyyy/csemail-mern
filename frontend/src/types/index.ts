@@ -17,7 +17,11 @@ export interface Contact {
   lastName?: string;
   phone?: string;
   tags: string[];
-  customFields: Record<string, string>;
+  customFields: {
+    company?: string;
+    position?: string;
+    // [key: string]: string | undefined;
+  };
   status: 'active' | 'unsubscribed' | 'bounced' | 'complained';
   listIds: string[];
   createdAt: string;
