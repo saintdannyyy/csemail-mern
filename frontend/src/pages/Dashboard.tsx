@@ -3,7 +3,7 @@ import { StatsCards } from "../components/Dashboard/StatsCards";
 import { RecentActivity } from "../components/Dashboard/RecentActivity";
 import { CampaignPerformanceChart } from "../components/Dashboard/CampaignPerformanceChart";
 import { apiClient } from "../utils/apiClient";
-import QuickLinks from "@/components/Dashboard/QuickLinks";
+import QuickLinks from "../components/Dashboard/QuickLinks";
 
 export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<any | null>(null);
