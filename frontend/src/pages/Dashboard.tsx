@@ -98,8 +98,8 @@ export const Dashboard: React.FC = () => {
 
         <StatsCards stats={stats} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CampaignPerformanceChart performance={performance} />
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+          {/* <CampaignPerformanceChart performance={performance} /> */}
           <RecentActivity activity={activity} />
         </div>
       </div>
