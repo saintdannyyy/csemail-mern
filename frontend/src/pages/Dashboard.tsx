@@ -3,6 +3,7 @@ import { StatsCards } from "../components/Dashboard/StatsCards";
 import { RecentActivity } from "../components/Dashboard/RecentActivity";
 import { CampaignPerformanceChart } from "../components/Dashboard/CampaignPerformanceChart";
 import { apiClient } from "../utils/apiClient";
+import QuickLinks from "@/components/Dashboard/QuickLinks";
 
 export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<any | null>(null);
@@ -98,7 +99,8 @@ export const Dashboard: React.FC = () => {
 
         <StatsCards stats={stats} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <QuickLinks />
           {/* <CampaignPerformanceChart performance={performance} /> */}
           <RecentActivity activity={activity} />
         </div>
