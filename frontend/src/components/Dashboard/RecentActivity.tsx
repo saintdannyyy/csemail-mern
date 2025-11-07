@@ -88,7 +88,7 @@ export const RecentActivity: React.FC<{ activity?: ActivityItem[] }> = ({
   if (loading) {
     return (
       <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 bg-blue-200">
           <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
         </div>
         <div className="p-6 text-center text-gray-400">Loading activity...</div>
@@ -99,7 +99,7 @@ export const RecentActivity: React.FC<{ activity?: ActivityItem[] }> = ({
   if (error) {
     return (
       <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 bg-blue-200">
           <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
         </div>
         <div className="p-6 text-center text-red-600">{error}</div>
@@ -122,7 +122,7 @@ export const RecentActivity: React.FC<{ activity?: ActivityItem[] }> = ({
   if (!activities || activities.length === 0) {
     return (
       <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 bg-blue-200">
           <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
         </div>
         <div className="p-6 text-center text-yellow-700">
@@ -152,7 +152,7 @@ export const RecentActivity: React.FC<{ activity?: ActivityItem[] }> = ({
 
   return (
     <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200  bg-blue-200">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
           {activities.length > itemsPerPage && (
