@@ -264,7 +264,7 @@ export const Contacts: React.FC = () => {
               onImport={handleImportContacts}
               trigger={
                 <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                  <Upload className="h-4 w-4 mr-2" />
+                  <Download className="h-4 w-4 mr-2" />
                   Import
                 </button>
               }
@@ -273,7 +273,7 @@ export const Contacts: React.FC = () => {
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               onClick={openExportModal}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Upload className="h-4 w-4 mr-2" />
               Export
             </button>
             <ContactFormDialog
@@ -378,11 +378,21 @@ export const Contacts: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {contact.customFields?.company || "-"}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {contact.customFields?.position || "-"}
+                      <div>
+                        {contact.customFields?.company ? (
+                          <>
+                            <div className="text-sm font-medium text-gray-900">
+                              {contact.customFields.company}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {contact.customFields.position || "No position specified"}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-400 italic">
+                            No company info
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
